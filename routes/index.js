@@ -104,6 +104,7 @@ router.get('/', requireAuth, async (req, res) => {
         order: [['created_at', 'DESC']],
         include: [{
           model: User,
+          as: 'user',
           attributes: ['username', 'role']
         }]
       });
