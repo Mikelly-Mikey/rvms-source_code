@@ -1,0 +1,313 @@
+<%- include('partials/header', { user }) %>
+<div class="container-fluid mt-4">
+  <h2>Dashboard</h2>
+  <p class="text-muted">Welcome, <%= user ? user.getFullName() : 'User' %> (<%= user ? user.role : 'N/A' %>)</p>
+  
+  <div class="row">
+    <div class="col-md-2"><div class="card text-white bg-primary mb-3"><div class="card-body"><h6>Total Vehicles</h6><h4><%= total_vehicles || 0 %></h4></div></div></div>
+    <div class="col-md-2"><div class="card text-white bg-success mb-3"><div class="card-body"><h6>Available</h6><h4><%= available || 0 %></h4></div></div></div>
+    <div class="col-md-2"><div class="card text-white bg-info mb-3"><div class="card-body"><h6>On Rent</h6><h4><%= on_rent || 0 %></h4></div></div></div>
+    <div class="col-md-2"><div class="card text-white bg-warning mb-3"><div class="card-body"><h6>Today's Bookings</h6><h4><%= today_bookings || 0 %></h4></div></div></div>
+    <div class="col-md-2"><div class="card text-white bg-secondary mb-3"><div class="card-body"><h6>Active Bookings</h6><h4><%= active_bookings || 0 %></h4></div></div></div>
+    <div class="col-md-2"><div class="card text-white bg-danger mb-3"><div class="card-body"><h6>Utilization</h6><h4><%= utilization || 0 %>%</h4></div></div></div>
+  </div>
+
+  <% if (user && user.role === 'admin') { %>
+  <div class="row mt-3">
+    <div class="col-md-12"><div class="card text-white bg-success"><div class="card-body"><h6>Today's Revenue</h6><h4>KES <%= (today_revenue || 0).toLocaleString() %></h4></div></div></div>
+  </div>
+  <% } %>
+
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <div class="card"><div class="card-header">Fleet Status</div><div class="card-body"><canvas id="fleetChart" height="150"></canvas></div></div>
+    </div>
+    <div class="col-md-6">
+      <div class="card"><div class="card-header">Currently Rented Vehicles</div>
+        <div class="card-body">
+          <table class="table table-sm">
+            <thead><tr><th>Ref</th><th>Customer</th><th>Vehicle</th><th>Dates</th><th>Status</th></tr></thead>
+            <tbody>
+              <% if (recent_bookings && recent_bookings.length > 0) { %>
+                <% recent_bookings.forEach(b => { %>
+                <tr>
+                  <td><%= b.booking_reference %></td>
+                  <td><%= b.customer ? b.customer.getFullName() : 'N/A' %></td>
+                  <td><%= b.vehicle ? b.vehicle.registration : 'N/A' %></td>
+                  <td><%= b.start_date ? new Date(b.start_date).toISOString().slice(0,10) : 'N/A' %> - <%= b.end_date ? new Date(b.end_date).toISOString().slice(0,10) : 'N/A' %></td>
+                  <td><span class="badge bg-<%= b.status === 'confirmed' ? 'primary' : b.status === 'checked-out' ? 'info' : 'secondary' %>"><%= b.status %></span></td>
+                </tr>
+                <% }) %>
+              <% } else { %>
+                <tr><td colspan="5" class="text-center">No recent bookings</td></tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if (maintenance_alerts && maintenance_alerts.length > 0) { %>
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card border-danger"><div class="card-header bg-danger text-white">Maintenance Alerts</div>
+        <div class="card-body">
+          <ul>
+            <% maintenance_alerts.forEach(a => { %>
+              <li><strong><%= a.vehicle ? a.vehicle.registration : 'Unknown' %>:</strong> <%= a.message %> (due <%= a.due_date ? new Date(a.due_date).toISOString().slice(0,10) : 'N/A' %>)</li>
+            <% }) %>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } %>
+
+  <% if (user && (user.role === 'receptionist' || user.role === 'admin')) { %>
+  <!-- Receptionist Report Summaries -->
+  <div class="row mt-4">
+    <div class="col-md-3"><div class="card border-primary"><div class="card-body text-center"><h6 class="card-title">Active Customers</h6><h2 class="display-6 text-primary"><%= active_customers || 0 %></h2><small class="text-muted">Last 30 days</small></div></div></div>
+    <div class="col-md-3"><div class="card border-success"><div class="card-body text-center"><h6 class="card-title">Total Customers</h6><h2 class="display-6 text-success"><%= total_customers || 0 %></h2><small class="text-muted">Registered</small></div></div></div>
+  </div>
+
+  <div class="row mt-4">
+    <div class="col-md-6"><div class="card"><div class="card-header">Daily Revenue (Last 30 Days)</div><div class="card-body"><canvas id="dailyRevChart" height="200"></canvas></div></div></div>
+    <div class="col-md-6"><div class="card"><div class="card-header">Weekly Revenue (Last 12 Weeks)</div><div class="card-body"><canvas id="weeklyRevChart" height="200"></canvas></div></div></div>
+  </div>
+  <% } %>
+
+  <% if (user && (user.role === 'fleet_supervisor' || user.role === 'admin')) { %>
+  <!-- Fleet Supervisor Specific Sections -->
+  <div class="row mt-4">
+    <div class="col-md-12">
+      <div class="card"><div class="card-header">Vehicle Usage Statistics</div>
+        <div class="card-body">
+          <table class="table table-sm">
+            <thead><tr><th>Vehicle</th><th>Make/Model</th><th>Mileage</th><th>Bookings</th><th>Total Revenue</th></tr></thead>
+            <tbody>
+              <% if (vehicle_usage_stats && vehicle_usage_stats.length > 0) { %>
+                <% vehicle_usage_stats.forEach(v => { %>
+                <tr>
+                  <td><%= v.registration %></td>
+                  <td><%= v.make %> <%= v.model %></td>
+                  <td><%= v.current_mileage || 0 %> km</td>
+                  <td><%= v.booking_count || 0 %></td>
+                  <td>KES <%= (v.total_revenue || 0).toLocaleString() %></td>
+                </tr>
+                <% }) %>
+              <% } else { %>
+                <tr><td colspan="5" class="text-center">No usage data available</td></tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt-4">
+    <div class="col-md-12">
+      <div class="card"><div class="card-header">Maintenance Costs by Vehicle</div>
+        <div class="card-body">
+          <table class="table table-sm">
+            <thead><tr><th>Vehicle</th><th>Make/Model</th><th>Maintenance Count</th><th>Total Cost</th></tr></thead>
+            <tbody>
+              <% if (maintenance_costs && maintenance_costs.length > 0) { %>
+                <% maintenance_costs.forEach(m => { %>
+                <tr>
+                  <td><%= m.registration %></td>
+                  <td><%= m.make %> <%= m.model %></td>
+                  <td><%= m.maintenance_count || 0 %></td>
+                  <td>KES <%= (m.total_maintenance_cost || 0).toLocaleString() %></td>
+                </tr>
+                <% }) %>
+              <% } else { %>
+                <tr><td colspan="4" class="text-center">No maintenance data available</td></tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt-4">
+    <div class="col-md-12">
+      <div class="card"><div class="card-header">Recent Maintenance Records</div>
+        <div class="card-body">
+          <table class="table table-sm">
+            <thead><tr><th>Vehicle</th><th>Date</th><th>Type</th><th>Cost</th><th>Provider</th><th>Description</th></tr></thead>
+            <tbody>
+              <% if (recent_maintenance && recent_maintenance.length > 0) { %>
+                <% recent_maintenance.forEach(m => { %>
+                <tr>
+                  <td><%= m.vehicle ? m.vehicle.registration : 'N/A' %></td>
+                  <td><%= m.service_date ? new Date(m.service_date).toISOString().slice(0,10) : 'N/A' %></td>
+                  <td><%= m.service_type %></td>
+                  <td>KES <%= (m.cost || 0).toLocaleString() %></td>
+                  <td><%= m.provider || 'N/A' %></td>
+                  <td><%= m.description || 'N/A' %></td>
+                </tr>
+                <% }) %>
+              <% } else { %>
+                <tr><td colspan="6" class="text-center">No recent maintenance records</td></tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } %>
+
+  <% if ((user && user.role === 'fleet_supervisor' || user.role === 'admin') && vehicle_usage_stats && vehicle_usage_stats.labels) { %>
+  <div class="row mt-4">
+    <div class="col-md-12">
+      <div class="card border-primary">
+        <div class="card-header bg-primary text-white">Vehicle Usage Statistics (Top 10)</div>
+        <div class="card-body">
+          <div style="height: 400px;">
+            <canvas id="vehicleUsageChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } %>
+
+  <% if (user && user.role === 'admin' && recent_activities && recent_activities.length > 0) { %>
+  <div class="row mt-4">
+    <div class="col-md-12">
+      <div class="card border-info"><div class="card-header bg-info text-white">Recent Staff Activities</div>
+        <div class="card-body">
+          <table class="table table-sm">
+            <thead><tr><th>Time</th><th>User</th><th>Role</th><th>Action</th><th>Description</th></tr></thead>
+            <tbody>
+              <% recent_activities.forEach(a => { %>
+                <tr>
+                  <td><%= new Date(a.created_at).toLocaleString() %></td>
+                  <td><%= a.username %></td>
+                  <td><span class="badge bg-secondary"><%= a.role %></span></td>
+                  <td><span class="badge bg-<%= a.action === 'create' ? 'success' : a.action === 'delete' ? 'danger' : a.action === 'checkout' ? 'primary' : a.action === 'return' ? 'warning' : 'info' %>"><%= a.action %></span></td>
+                  <td><%= a.description %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } %>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  /* eslint-disable */
+  // This file contains EJS template syntax - IDE errors are expected and can be ignored
+  // EJS template syntax - ignore IDE errors
+  const fleetData = JSON.parse('<%- JSON.stringify({ available: available || 0, reserved: reserved || 0, on_rent: on_rent || 0, in_maintenance: in_maintenance || 0, offline: offline || 0 }) %>');
+
+  new Chart(document.getElementById('fleetChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Available', 'Reserved', 'On Rent', 'Maintenance', 'Offline'],
+      datasets: [{
+        data: [fleetData.available, fleetData.reserved, fleetData.on_rent, fleetData.in_maintenance, fleetData.offline],
+        backgroundColor: ['#28a745', '#ffc107', '#17a2b8', '#fd7e14', '#6c757d']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+
+  <% if ((user && (user.role === 'fleet_supervisor' || user.role === 'admin')) && vehicle_usage_stats && vehicle_usage_stats.labels) { %>
+  // EJS template syntax - ignore IDE errors
+  const vehicleUsageData = JSON.parse('<%- JSON.stringify(vehicle_usage_stats) %>');
+
+  new Chart(document.getElementById('vehicleUsageChart'), {
+    type: 'bar',
+    data: {
+      labels: vehicleUsageData.labels,
+      datasets: [
+        {
+          label: 'Total Bookings',
+          data: vehicleUsageData.data,
+          backgroundColor: '#007bff',
+          borderColor: '#0056b3',
+          borderWidth: 1
+        },
+        {
+          label: 'Completed Bookings',
+          data: vehicleUsageData.completed,
+          backgroundColor: '#28a745',
+          borderColor: '#1e7e34',
+          borderWidth: 1
+        },
+        {
+          label: 'Active Bookings',
+          data: vehicleUsageData.active,
+          backgroundColor: '#ffc107',
+          borderColor: '#d39e00',
+          borderWidth: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Number of Bookings'
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Vehicles (Make, Model - Registration)'
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top'
+        }
+      }
+    }
+  });
+  <% } %>
+
+  <% if ((user && (user.role === 'receptionist' || user.role === 'admin')) && daily_revenue && daily_revenue.length > 0) { %>
+  // EJS template syntax - ignore IDE errors
+  const dailyRevData = JSON.parse('<%- JSON.stringify(daily_revenue) %>');
+  new Chart(document.getElementById('dailyRevChart'), {
+    type: 'line',
+    data: {
+      labels: dailyRevData.map(r => r.date),
+      datasets: [{ label: 'Revenue (KES)', data: dailyRevData.map(r => parseFloat(r.revenue) || 0), borderColor: '#007bff', fill: false, tension: 0.1 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+  <% } %>
+
+  <% if ((user && (user.role === 'receptionist' || user.role === 'admin')) && weekly_revenue && weekly_revenue.length > 0) { %>
+  // EJS template syntax - ignore IDE errors
+  const weeklyRevData = JSON.parse('<%- JSON.stringify(weekly_revenue) %>');
+  new Chart(document.getElementById('weeklyRevChart'), {
+    type: 'line',
+    data: {
+      labels: weeklyRevData.map(r => r.week),
+      datasets: [{ label: 'Revenue (KES)', data: weeklyRevData.map(r => parseFloat(r.revenue) || 0), borderColor: '#28a745', fill: false, tension: 0.1 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+<% } %>
+</script>
+<%- include('partials/footer') %>

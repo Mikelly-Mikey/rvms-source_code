@@ -1,0 +1,377 @@
+<%- include('partials/header', { user }) %>
+<div class="container-fluid mt-4">
+  <h2>Customer Dashboard</h2>
+  <p class="text-muted">Welcome, <%= user ? user.getFullName() : 'User' %></p>
+
+  <!-- Customer Details Card -->
+  <div class="row mt-4">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">My Profile</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3"><strong>Username:</strong> <%= user ? user.username : 'N/A' %></div>
+            <div class="col-md-3"><strong>Email:</strong> <%= user ? user.email : 'N/A' %></div>
+            <div class="col-md-3"><strong>Phone:</strong> <%= user ? user.phone : 'N/A' %></div>
+            <div class="col-md-3"><strong>License No:</strong> <%= user ? (user.license_number || 'N/A') : 'N/A' %></div>
+          </div>
+          <div class="row mt-2">
+            <div class="col-md-12"><strong>Total Spent:</strong> KES <%= (total_spent || 0).toLocaleString() %></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Available Vehicles -->
+  <div class="row mt-4">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Available Vehicles for Booking</h5>
+        </div>
+        <div class="card-body">
+          <!-- Search and Filter Section -->
+          <div class="row mb-4 p-3 bg-light rounded">
+            <div class="col-md-3">
+              <label for="search" class="form-label"><strong>Search</strong></label>
+              <input type="text" class="form-control" id="search" placeholder="Make, model, or registration..." onkeyup="filterVehicles()">
+            </div>
+            <div class="col-md-2">
+              <label for="category" class="form-label"><strong>Category</strong></label>
+              <select class="form-select" id="category" onchange="filterVehicles()">
+                <option value="">All Categories</option>
+                <option value="economy">Economy</option>
+                <option value="compact">Compact</option>
+                <option value="suv">SUV</option>
+                <option value="luxury">Luxury</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label for="transmission" class="form-label"><strong>Transmission</strong></label>
+              <select class="form-select" id="transmission" onchange="filterVehicles()">
+                <option value="">All</option>
+                <option value="automatic">Automatic</option>
+                <option value="manual">Manual</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label for="fuel" class="form-label"><strong>Fuel Type</strong></label>
+              <select class="form-select" id="fuel" onchange="filterVehicles()">
+                <option value="">All</option>
+                <option value="petrol">Petrol</option>
+                <option value="diesel">Diesel</option>
+                <option value="electric">Electric</option>
+                <option value="hybrid">Hybrid</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="seats" class="form-label"><strong>Seats</strong></label>
+              <select class="form-select" id="seats" onchange="filterVehicles()">
+                <option value="">Any</option>
+                <option value="2">2</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="7">7</option>
+                <option value="8">8+</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Price Range Filter -->
+          <div class="row mb-4">
+            <div class="col-md-12">
+              <label class="form-label"><strong>Price Range (Daily Rate)</strong>: KES <span id="minPriceDisplay">0</span> - KES <span id="maxPriceDisplay">50000</span></label>
+              <input type="range" class="form-range" id="priceRange" min="0" max="50000" step="1000" value="50000" oninput="updatePriceDisplay(); filterVehicles()">
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <strong>Results:</strong> <span id="resultCount">0</span> vehicles
+            </div>
+            <div class="col-md-6 text-end">
+              <button class="btn btn-secondary btn-sm" onclick="resetFilters()">Reset Filters</button>
+            </div>
+          </div>
+
+          <% if (available_vehicles && available_vehicles.length > 0) { %>
+            <div class="row" id="vehicleGrid">
+              <% available_vehicles.forEach((v, index) => { %>
+                <div class="col-md-4 mb-3 vehicle-card" data-category="<%= v.category %>" data-transmission="<%= v.transmission %>" data-fuel="<%= v.fuel_type %>" data-seats="<%= v.seating_capacity %>" data-price="<%= v.daily_rate %>" data-search="<%= v.make.toLowerCase() %> <%= v.model.toLowerCase() %> <%= v.registration.toLowerCase() %>">
+                  <div class="card h-100 shadow-sm hover-shadow">
+                    <% if (v.image_url) { %>
+                      <img src="<%= v.image_url %>" class="card-img-top" alt="<%= v.make %> <%= v.model %>" style="height: 180px; object-fit: cover;">
+                    <% } else { %>
+                      <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height: 180px;">
+                        <span class="text-white">No Image</span>
+                      </div>
+                    <% } %>
+                    <div class="card-body">
+                      <div class="d-flex justify-content-between align-items-start">
+                        <h6 class="card-title mb-1"><%= v.make %> <%= v.model %> (<%= v.year %>)</h6>
+                        <span class="badge bg-success" id="status-<%= v.vehicle_id %>">Available</span>
+                      </div>
+                      <p class="text-muted small mb-2">Reg: <%= v.registration %></p>
+                      <div class="mb-2">
+                        <span class="badge bg-light text-dark"><%= v.category %></span>
+                        <span class="badge bg-light text-dark"><%= v.transmission %></span>
+                        <span class="badge bg-light text-dark"><%= v.seating_capacity %> seats</span>
+                      </div>
+                      <div class="price-box bg-light p-2 rounded mb-2">
+                        <strong class="text-primary">KES <%= parseFloat(v.daily_rate).toLocaleString() %></strong>
+                        <span class="text-muted small">/day</span>
+                        <br>
+                        <small class="text-muted">KES <%= parseFloat(v.weekly_rate).toLocaleString() %>/week</small>
+                      </div>
+                      <a href="/vehicles/<%= v.vehicle_id %>" class="btn btn-primary w-100">View Details</a>
+                      <div id="availability-<%= v.vehicle_id %>" class="mt-2 small text-muted"></div>
+                    </div>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <p class="text-muted">No vehicles currently available for booking.</p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Completed Bookings -->
+  <div class="row mt-4">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">My Completed Bookings</h5>
+        </div>
+        <div class="card-body">
+          <% if (completed_bookings && completed_bookings.length > 0) { %>
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Vehicle</th>
+                  <th>Start Date</th>
+                  <th>End Date</th>
+                  <th>Pickup Time</th>
+                  <th>Return Time</th>
+                  <th>Total Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% completed_bookings.forEach(b => { %>
+                  <tr>
+                    <td><%= b.booking_reference %></td>
+                    <td>
+                      <%= b.vehicle ? b.vehicle.registration : 'N/A' %><br>
+                      <small><%= b.vehicle ? (b.vehicle.make + ' ' + b.vehicle.model) : '' %></small>
+                    </td>
+                    <td><%= b.start_date ? new Date(b.start_date).toISOString().slice(0,10) : 'N/A' %></td>
+                    <td><%= b.end_date ? new Date(b.end_date).toISOString().slice(0,10) : 'N/A' %></td>
+                    <td><%= b.pickup_time %></td>
+                    <td><%= b.return_time %></td>
+                    <td>KES <%= (b.total_amount || 0).toLocaleString() %></td>
+                    <td><span class="badge bg-<%= b.status === 'completed' ? 'success' : 'info' %>"><%= b.status %></span></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          <% } else { %>
+            <p class="text-muted">No completed bookings yet.</p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment History -->
+  <div class="row mt-4">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Payment History</h5>
+        </div>
+        <div class="card-body">
+          <% if (payments && payments.length > 0) { %>
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Method</th>
+                  <th>Reference</th>
+                  <th>Vehicle</th>
+                  <th>Booking Period</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% payments.forEach(p => { %>
+                  <tr>
+                    <td><%= p.payment_date ? new Date(p.payment_date).toISOString().slice(0,10) : 'N/A' %></td>
+                    <td>KES <%= parseFloat(p.amount).toLocaleString() %></td>
+                    <td><%= p.method %></td>
+                    <td><%= p.reference || 'N/A' %></td>
+                    <td>
+                      <%= p.booking && p.booking.vehicle ? p.booking.vehicle.registration : 'N/A' %><br>
+                      <small><%= p.booking && p.booking.vehicle ? (p.booking.vehicle.make + ' ' + p.booking.vehicle.model) : '' %></small>
+                    </td>
+                    <td>
+                      <% if (p.booking) { %>
+                        <%= p.booking.start_date ? new Date(p.booking.start_date).toISOString().slice(0,10) : 'N/A' %> - 
+                        <%= p.booking.end_date ? new Date(p.booking.end_date).toISOString().slice(0,10) : 'N/A' %>
+                        <br>
+                        <small><%= p.booking.pickup_time %> to <%= p.booking.return_time %></small>
+                      <% } else { %>
+                        N/A
+                      <% } %>
+                    </td>
+                    <td><span class="badge bg-<%= p.status === 'completed' ? 'success' : 'warning' %>"><%= p.status %></span></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          <% } else { %>
+            <p class="text-muted">No payment history available.</p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function filterVehicles() {
+  const searchTerm = document.getElementById('search').value.toLowerCase();
+  const category = document.getElementById('category').value;
+  const transmission = document.getElementById('transmission').value;
+  const fuel = document.getElementById('fuel').value;
+  const seats = document.getElementById('seats').value;
+  const maxPrice = parseInt(document.getElementById('priceRange').value);
+
+  const cards = document.querySelectorAll('.vehicle-card');
+  let visibleCount = 0;
+
+  cards.forEach(card => {
+    const cardCategory = card.dataset.category;
+    const cardTransmission = card.dataset.transmission;
+    const cardFuel = card.dataset.fuel;
+    const cardSeats = card.dataset.seats;
+    const cardPrice = parseFloat(card.dataset.price);
+    const cardSearch = card.dataset.search;
+
+    let showCard = true;
+
+    if (searchTerm && !cardSearch.includes(searchTerm)) {
+      showCard = false;
+    }
+
+    if (category && cardCategory !== category) {
+      showCard = false;
+    }
+
+    if (transmission && cardTransmission !== transmission) {
+      showCard = false;
+    }
+
+    if (fuel && cardFuel !== fuel) {
+      showCard = false;
+    }
+
+    if (seats && cardSeats !== seats && !(seats === '8' && parseInt(cardSeats) >= 8)) {
+      showCard = false;
+    }
+
+    if (cardPrice > maxPrice) {
+      showCard = false;
+    }
+
+    if (showCard) {
+      card.style.display = 'block';
+      visibleCount++;
+    } else {
+      card.style.display = 'none';
+    }
+  });
+
+  document.getElementById('resultCount').textContent = visibleCount;
+}
+
+function updatePriceDisplay() {
+  const maxPrice = document.getElementById('priceRange').value;
+  document.getElementById('maxPriceDisplay').textContent = parseInt(maxPrice).toLocaleString();
+}
+
+function resetFilters() {
+  document.getElementById('search').value = '';
+  document.getElementById('category').value = '';
+  document.getElementById('transmission').value = '';
+  document.getElementById('fuel').value = '';
+  document.getElementById('seats').value = '';
+  document.getElementById('priceRange').value = '50000';
+  updatePriceDisplay();
+  filterVehicles();
+}
+
+// Check vehicle availability in real-time
+async function checkVehicleAvailability(vehicleId) {
+  try {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const startDate = today.toISOString().split('T')[0];
+    const endDate = tomorrow.toISOString().split('T')[0];
+    
+    const response = await fetch(`/vehicles/${vehicleId}/availability?start_date=${startDate}&end_date=${endDate}`);
+    const data = await response.json();
+    
+    const statusBadge = document.getElementById(`status-${vehicleId}`);
+    const availabilityDiv = document.getElementById(`availability-${vehicleId}`);
+    
+    if (data.available) {
+      statusBadge.className = 'badge bg-success';
+      statusBadge.textContent = 'Available';
+      if (availabilityDiv) {
+        availabilityDiv.textContent = '✓ Available now';
+        availabilityDiv.className = 'mt-2 small text-success';
+      }
+    } else {
+      statusBadge.className = 'badge bg-warning';
+      statusBadge.textContent = 'Reserved';
+      if (availabilityDiv) {
+        availabilityDiv.textContent = '⚠ Currently booked';
+        availabilityDiv.className = 'mt-2 small text-warning';
+      }
+    }
+  } catch (error) {
+    console.error('Error checking availability:', error);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  filterVehicles();
+  
+  // Check availability for all vehicles
+  const vehicleCards = document.querySelectorAll('.vehicle-card');
+  vehicleCards.forEach(card => {
+    const vehicleId = card.querySelector('[id^="status-"]').id.replace('status-', '');
+    checkVehicleAvailability(vehicleId);
+  });
+  
+  // Refresh availability every 5 minutes
+  setInterval(() => {
+    vehicleCards.forEach(card => {
+      const vehicleId = card.querySelector('[id^="status-"]').id.replace('status-', '');
+      checkVehicleAvailability(vehicleId);
+    });
+  }, 300000);
+});
+</script>
+
+<%- include('partials/footer') %>

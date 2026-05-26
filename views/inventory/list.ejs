@@ -1,0 +1,20 @@
+<%- include('../partials/header', { user }) %>
+<div class="container-fluid mt-4">
+  <h2>Inventory</h2>
+  <table class="table table-striped">
+    <thead><tr><th>SKU</th><th>Name</th><th>Type</th><th>Stock</th><th>Reorder Point</th><th>Category</th></tr></thead>
+    <tbody>
+      <% items.forEach(item => { %>
+        <tr>
+          <td><%= item.sku %></td>
+          <td><%= item.name %></td>
+          <td><%= item.item_type %></td>
+          <td><%= item.current_stock %></td>
+          <td><%= item.reorder_point %></td>
+          <td><%= item.category ? item.category.name : 'N/A' %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

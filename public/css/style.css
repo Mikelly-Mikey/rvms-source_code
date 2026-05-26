@@ -1,0 +1,254 @@
+body {
+  background-color: #f8f9fa;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.navbar {
+  margin-bottom: 20px;
+}
+
+.card {
+  margin-bottom: 20px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.table th {
+  font-size: 0.9rem;
+}
+
+/* Vehicle Card Styling */
+.vehicle-card {
+  transition: all 0.3s ease;
+}
+
+.vehicle-card .card {
+  border: none;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.vehicle-card .card-img-top {
+  transition: transform 0.3s ease;
+}
+
+.vehicle-card:hover .card-img-top {
+  transform: scale(1.05);
+}
+
+.price-box {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.price-box strong {
+  font-size: 1.2rem;
+}
+
+.price-box small {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Badge Styling */
+.badge {
+  font-weight: 500;
+  padding: 0.4em 0.6em;
+}
+
+/* Form Styling */
+.form-control:focus,
+.form-select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.form-range::-webkit-slider-thumb {
+  background: #667eea;
+}
+
+.form-range::-moz-range-thumb {
+  background: #667eea;
+}
+
+/* Button Styling */
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: #6c757d;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+}
+
+/* Card Header Styling */
+.card-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  padding: 15px;
+}
+
+.card-header h5 {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* Responsive Improvements */
+@media (max-width: 768px) {
+  .vehicle-card {
+    margin-bottom: 15px;
+  }
+
+  .price-box {
+    padding: 8px;
+  }
+
+  .price-box strong {
+    font-size: 1rem;
+  }
+
+  /* Search and filter stack on mobile */
+  .bg-light.rounded .row > div {
+    margin-bottom: 10px;
+  }
+
+  /* Table responsive */
+  .table-responsive {
+    overflow-x: auto;
+  }
+
+  .table {
+    font-size: 0.875rem;
+  }
+
+  /* Button sizing */
+  .btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  /* Card adjustments */
+  .card-body {
+    padding: 1rem;
+  }
+
+  /* Navbar adjustments */
+  .navbar-brand {
+    font-size: 1.2rem;
+  }
+
+  /* Form controls */
+  .form-control,
+  .form-select {
+    font-size: 1rem;
+  }
+
+  /* Hide less important elements on very small screens */
+  @media (max-width: 576px) {
+    .vehicle-card .badge {
+      font-size: 0.7rem;
+      padding: 0.2em 0.4em;
+    }
+
+    .price-box strong {
+      font-size: 0.9rem;
+    }
+
+    .card-header h5 {
+      font-size: 1rem;
+    }
+  }
+}
+
+/* Tablet improvements */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .vehicle-card {
+    margin-bottom: 20px;
+  }
+
+  .vehicle-card .card-img-top {
+    height: 160px;
+  }
+}
+
+/* Large screen improvements */
+@media (min-width: 1025px) {
+  .container {
+    max-width: 1400px;
+  }
+
+  .vehicle-card .card-img-top {
+    height: 200px;
+  }
+}
+
+/* Loading Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.vehicle-card {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Search and Filter Section */
+.bg-light.rounded {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Result Count */
+#resultCount {
+  font-weight: 600;
+  color: #667eea;
+}
+
+/* Hover Shadow Effect */
+.hover-shadow:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Table Improvements */
+.table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.table thead th {
+  border: none;
+  padding: 12px;
+}
+
+/* Profile Card */
+.card-header.bg-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}

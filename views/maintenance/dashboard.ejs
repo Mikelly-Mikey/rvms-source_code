@@ -1,0 +1,24 @@
+<%- include('../partials/header', { user }) %>
+<div class="container-fluid mt-4">
+  <h2>Maintenance Records</h2>
+  <table class="table table-striped">
+    <thead><tr><th>Vehicle</th><th>Date</th><th>Type</th><th>Cost</th><th>Provider</th><th>Description</th></tr></thead>
+    <tbody>
+      <% if (maintenanceRecords && maintenanceRecords.length > 0) { %>
+        <% maintenanceRecords.forEach(m => { %>
+          <tr>
+            <td><%= m.vehicle ? m.vehicle.registration : 'N/A' %></td>
+            <td><%= m.service_date ? new Date(m.service_date).toISOString().slice(0,10) : 'N/A' %></td>
+            <td><%= m.service_type %></td>
+            <td>KES <%= (m.cost || 0).toLocaleString() %></td>
+            <td><%= m.provider || 'N/A' %></td>
+            <td><%= m.description || 'N/A' %></td>
+          </tr>
+        <% }) %>
+      <% } else { %>
+        <tr><td colspan="6" class="text-center">No maintenance records found</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

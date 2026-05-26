@@ -1,0 +1,126 @@
+<%- include('../partials/header', { user }) %>
+<div class="container-fluid mt-4">
+  <h2>Analytics & Reports</h2>
+  
+  <!-- Summary Cards -->
+  <div class="row mt-4">
+    <div class="col-md-3">
+      <div class="card border-primary">
+        <div class="card-body text-center">
+          <h5 class="card-title">Active Customers</h5>
+          <h2 class="display-4 text-primary"><%= activeCustomersCount || 0 %></h2>
+          <small class="text-muted">Total: <%= totalCustomers || 0 %></small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-success">
+        <div class="card-body text-center">
+          <h5 class="card-title">Active Vehicles</h5>
+          <h2 class="display-4 text-success"><%= activeVehiclesCount || 0 %></h2>
+          <small class="text-muted">Total: <%= totalVehicles || 0 %></small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-info">
+        <div class="card-body text-center">
+          <h5 class="card-title">Vehicles On Rent</h5>
+          <h2 class="display-4 text-info"><%= vehiclesOnRent || 0 %></h2>
+          <small class="text-muted">Currently rented</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-warning">
+        <div class="card-body text-center">
+          <h5 class="card-title">Fleet Utilization</h5>
+          <h2 class="display-4 text-warning"><%= totalVehicles > 0 ? ((vehiclesOnRent / totalVehicles) * 100).toFixed(1) : 0 %>%</h2>
+          <small class="text-muted">Rent/Total ratio</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revenue Charts -->
+  <div class="row mt-4">
+    <div class="col-md-4"><div class="card"><div class="card-header">Daily Revenue (Last 30 Days)</div><div class="card-body"><canvas id="dailyRevChart" height="200"></canvas></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-header">Weekly Revenue (Last 12 Weeks)</div><div class="card-body"><canvas id="weeklyRevChart" height="200"></canvas></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-header">Monthly Revenue (Last 6 Months)</div><div class="card-body"><canvas id="monthlyRevChart" height="200"></canvas></div></div></div>
+  </div>
+  
+  <div class="row mt-4">
+    <div class="col-md-6"><div class="card"><div class="card-header">Fleet Utilization by Category</div><div class="card-body"><canvas id="fleetUtilChart" height="200"></canvas></div></div></div>
+  </div>
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <div class="card"><div class="card-header">Top 5 Customers by Bookings</div>
+        <div class="card-body"><table class="table table-sm"><thead><tr><th>Customer</th><th>Bookings</th><th>Total Spent</th></tr></thead><tbody>
+          <% if (topCustomers && topCustomers.length > 0) { %>
+            <% topCustomers.forEach(c => { %><tr><td><%= c.customer ? (c.customer.first_name + ' ' + c.customer.last_name) : 'N/A' %></td><td><%= c.booking_count || 0 %></td><td>KES <%= (c.total_spent || 0).toLocaleString() %></td></tr><% }) %>
+          <% } else { %>
+            <tr><td colspan="3" class="text-center">No data available</td></tr>
+          <% } %>
+        </tbody></table></div></div>
+    </div>
+    <div class="col-md-6">
+      <div class="card"><div class="card-header">Maintenance Cost by Vehicle</div>
+        <div class="card-body"><table class="table table-sm"><thead><tr><th>Vehicle</th><th>Total Cost</th></tr></thead><tbody>
+          <% if (maintenanceCosts && maintenanceCosts.length > 0) { %>
+            <% maintenanceCosts.forEach(m => { %><tr><td><%= m.vehicle ? m.vehicle.registration : 'N/A' %></td><td>KES <%= (m.total_cost || 0).toLocaleString() %></td></tr><% }) %>
+          <% } else { %>
+            <tr><td colspan="2" class="text-center">No data available</td></tr>
+          <% } %>
+        </tbody></table></div></div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  /* eslint-disable */
+  (function() {
+    const fleetData = JSON.parse('<%- fleetUtilization || "[]" %>');
+    new Chart(document.getElementById('fleetUtilChart'), {
+      type: 'bar',
+      data: {
+        labels: fleetData.map(f => f.category),
+        datasets: [
+          { label: 'Total', data: fleetData.map(f => f.total || 0), backgroundColor: 'rgba(54,162,235,0.5)' },
+          { label: 'Rented', data: fleetData.map(f => f.rented || 0), backgroundColor: 'rgba(255,99,132,0.5)' }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    const dailyRevData = JSON.parse('<%- dailyRevenue || "[]" %>');
+    new Chart(document.getElementById('dailyRevChart'), {
+      type: 'line',
+      data: {
+        labels: dailyRevData.map(r => r.date),
+        datasets: [{ label: 'Revenue (KES)', data: dailyRevData.map(r => parseFloat(r.revenue) || 0), borderColor: '#007bff', fill: false, tension: 0.1 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    const weeklyRevData = JSON.parse('<%- weeklyRevenue || "[]" %>');
+    new Chart(document.getElementById('weeklyRevChart'), {
+      type: 'line',
+      data: {
+        labels: weeklyRevData.map(r => r.week),
+        datasets: [{ label: 'Revenue (KES)', data: weeklyRevData.map(r => parseFloat(r.revenue) || 0), borderColor: '#28a745', fill: false, tension: 0.1 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    const monthlyRevData = JSON.parse('<%- monthlyRevenue || "[]" %>');
+    new Chart(document.getElementById('monthlyRevChart'), {
+      type: 'line',
+      data: {
+        labels: monthlyRevData.map(r => r.month),
+        datasets: [{ label: 'Revenue (KES)', data: monthlyRevData.map(r => parseFloat(r.revenue) || 0), borderColor: '#ffc107', fill: false, tension: 0.1 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  })();
+</script>
+<%- include('../partials/footer') %>

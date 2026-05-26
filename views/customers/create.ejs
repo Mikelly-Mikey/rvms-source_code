@@ -1,0 +1,73 @@
+<%- include('../partials/header', { user }) %>
+<div class="container-fluid mt-4">
+  <h2>Add New Customer</h2>
+  <% if (error) { %>
+    <div class="alert alert-danger"><%= error %></div>
+  <% } %>
+  <form action="/customers/create" method="POST" class="needs-validation" novalidate>
+    <div class="row">
+      <div class="col-md-6">
+        <div class="form-group mb-3">
+          <label for="first_name" class="form-label">First Name</label>
+          <input type="text" class="form-control" id="first_name" name="first_name" required autocomplete="given-name">
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="form-group mb-3">
+          <label for="last_name" class="form-label">Last Name</label>
+          <input type="text" class="form-control" id="last_name" name="last_name" required autocomplete="family-name">
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6">
+        <div class="form-group mb-3">
+          <label for="phone" class="form-label">Phone Number</label>
+          <input type="tel" class="form-control" id="phone" name="phone" required autocomplete="tel">
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="form-group mb-3">
+          <label for="email" class="form-label">Email</label>
+          <input type="email" class="form-control" id="email" name="email" autocomplete="email">
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-4">
+        <div class="form-group mb-3">
+          <label for="id_type" class="form-label">ID Type</label>
+          <select class="form-control" id="id_type" name="id_type" required>
+            <option value="">Select ID Type</option>
+            <option value="national_id">National ID</option>
+            <option value="passport">Passport</option>
+            <option value="driving_license">Driving License</option>
+          </select>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="form-group mb-3">
+          <label for="id_number" class="form-label">ID Number</label>
+          <input type="text" class="form-control" id="id_number" name="id_number" required autocomplete="off">
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="form-group mb-3">
+          <label for="license_number" class="form-label">License Number</label>
+          <input type="text" class="form-control" id="license_number" name="license_number" required autocomplete="off">
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6">
+        <div class="form-group mb-3">
+          <label for="license_expiry" class="form-label">License Expiry Date</label>
+          <input type="date" class="form-control" id="license_expiry" name="license_expiry" required>
+        </div>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Add Customer</button>
+    <a href="/customers" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+<%- include('../partials/footer') %>

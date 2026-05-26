@@ -1,0 +1,23 @@
+<%- include('../partials/header', { user }) %>
+<div class="container-fluid mt-4">
+  <h2>Payments</h2>
+  <table class="table table-striped">
+    <thead><tr><th>Booking Ref</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th></tr></thead>
+    <tbody>
+      <% if (payments && payments.length > 0) { %>
+        <% payments.forEach(p => { %>
+          <tr>
+            <td><%= p.booking ? p.booking.booking_reference : 'N/A' %></td>
+            <td>KES <%= (p.amount || 0).toLocaleString() %></td>
+            <td><%= p.method %></td>
+            <td><span class="badge bg-<%= p.status === 'completed' ? 'success' : 'warning' %>"><%= p.status %></span></td>
+            <td><%= p.payment_date ? new Date(p.payment_date).toISOString().slice(0,10) : 'N/A' %></td>
+          </tr>
+        <% }) %>
+      <% } else { %>
+        <tr><td colspan="5" class="text-center">No payments found</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,32 @@
+<%- include('../partials/header', { user }) %>
+<div class="container mt-4">
+  <h2>New Booking</h2>
+  <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <form method="POST" action="/bookings/create">
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label>Customer</label>
+        <select name="customer_id" class="form-select" required>
+          <option value="">Select</option>
+          <% customers.forEach(c => { %><option value="<%= c.customer_id %>"><%= c.getFullName() %> (<%= c.phone %>)</option><% }) %>
+        </select>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label>Vehicle</label>
+        <select name="vehicle_id" class="form-select" required>
+          <option value="">Select</option>
+          <% vehicles.forEach(v => { %><option value="<%= v.vehicle_id %>"><%= v.make %> <%= v.model %> (<%= v.registration %>) - KES <%= v.daily_rate %>/day</option><% }) %>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-3 mb-3"><label>Start Date</label><input type="date" name="start_date" class="form-control" required></div>
+      <div class="col-md-3 mb-3"><label>End Date</label><input type="date" name="end_date" class="form-control" required></div>
+      <div class="col-md-3 mb-3"><label>Pickup Time</label><input type="time" name="pickup_time" class="form-control" value="10:00" required></div>
+      <div class="col-md-3 mb-3"><label>Return Time</label><input type="time" name="return_time" class="form-control" value="10:00" required></div>
+    </div>
+    <button type="submit" class="btn btn-primary">Create Booking</button>
+    <a href="/bookings" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+<%- include('../partials/footer') %>

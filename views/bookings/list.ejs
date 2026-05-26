@@ -1,0 +1,39 @@
+<%- include('../partials/header', { user }) %>
+<div class="container-fluid mt-4">
+  <h2>Bookings <a href="/bookings/create" class="btn btn-primary btn-sm">New Booking</a></h2>
+  <table class="table table-striped">
+    <thead><tr><th>Ref</th><th>Customer</th><th>Vehicle</th><th>Start</th><th>End</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+      <% if (bookings && bookings.length > 0) { %>
+        <% bookings.forEach(b => { %>
+          <tr>
+            <td><%= b.booking_reference %></td>
+            <td><%= b.customer ? b.customer.getFullName() : 'N/A' %></td>
+            <td><%= b.vehicle ? b.vehicle.registration : 'N/A' %></td>
+            <td><%= b.start_date ? new Date(b.start_date).toISOString().slice(0,10) : 'N/A' %></td>
+            <td><%= b.end_date ? new Date(b.end_date).toISOString().slice(0,10) : 'N/A' %></td>
+            <td>KES <%= (b.total_amount || 0).toLocaleString() %></td>
+            <td><span class="badge bg-<%= b.status === 'confirmed' ? 'primary' : b.status === 'checked-out' ? 'info' : b.status === 'pending' ? 'warning' : b.status === 'cancelled' ? 'danger' : b.status === 'completed' ? 'success' : b.status === 'on-rent' ? 'info' : 'secondary' %>"><%= b.status %></span></td>
+            <td>
+              <% if (b.status === 'confirmed') { %>
+                <form action="/bookings/<%= b.booking_id %>/checkout" method="POST" style="display:inline;">
+                  <button type="submit" class="btn btn-sm btn-success">Check Out</button>
+                </form>
+                <form action="/bookings/<%= b.booking_id %>/delete" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to cancel this booking?');">
+                  <button type="submit" class="btn btn-sm btn-danger">Cancel</button>
+                </form>
+              <% } else if (b.status === 'checked-out') { %>
+                <form action="/bookings/<%= b.booking_id %>/return" method="POST" style="display:inline;">
+                  <button type="submit" class="btn btn-sm btn-warning">Return</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      <% } else { %>
+        <tr><td colspan="8" class="text-center">No bookings found</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

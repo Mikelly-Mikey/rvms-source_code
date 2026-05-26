@@ -1,0 +1,144 @@
+<%- include('../partials/header', { user }) %>
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-md-5">
+      <% if (vehicle.image_url) { %>
+        <img src="<%= vehicle.image_url %>" class="img-fluid rounded" alt="<%= vehicle.make %> <%= vehicle.model %>" style="max-height: 400px; object-fit: cover;">
+      <% } else { %>
+        <div class="bg-secondary d-flex align-items-center justify-content-center rounded" style="height: 400px;">
+          <span class="text-white">No Image</span>
+        </div>
+      <% } %>
+    </div>
+    <div class="col-md-7">
+      <h2><%= vehicle.make %> <%= vehicle.model %> (<%= vehicle.year %>)</h2>
+      <hr>
+      <div class="row">
+        <div class="col-md-6">
+          <p><strong>Registration:</strong> <%= vehicle.registration %></p>
+          <p><strong>Category:</strong> <%= vehicle.category %></p>
+          <p><strong>Status:</strong> <span class="badge bg-<%= vehicle.status === 'available' ? 'success' : vehicle.status === 'on-rent' ? 'danger' : 'warning' %>"><%= vehicle.status %></span></p>
+          <p><strong>Transmission:</strong> <%= vehicle.transmission %></p>
+          <p><strong>Fuel Type:</strong> <%= vehicle.fuel_type %></p>
+        </div>
+        <div class="col-md-6">
+          <p><strong>Seating Capacity:</strong> <%= vehicle.seating_capacity %> seats</p>
+          <p><strong>Daily Rate:</strong> KES <%= parseFloat(vehicle.daily_rate).toLocaleString() %></p>
+          <p><strong>Weekly Rate:</strong> KES <%= parseFloat(vehicle.weekly_rate).toLocaleString() %></p>
+          <p><strong>Current Mileage:</strong> <%= vehicle.current_mileage %> km</p>
+          <p><strong>Color:</strong> <%= vehicle.color %></p>
+        </div>
+      </div>
+      <% if (vehicle.description) { %>
+        <hr>
+        <p><strong>Description:</strong> <%= vehicle.description %></p>
+      <% } %>
+      <hr>
+      <% if (user && user.role === 'customer') { %>
+        <a href="/customer-dashboard" class="btn btn-secondary">Back to Dashboard</a>
+        <% if (vehicle.status === 'available') { %>
+          <a href="/bookings/create?vehicle_id=<%= vehicle.vehicle_id %>" class="btn btn-primary">Book This Vehicle</a>
+        <% } %>
+      <% } else { %>
+        <a href="/vehicles" class="btn btn-secondary">Back to Vehicles</a>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Reviews Section -->
+  <div class="row mt-5">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Customer Reviews</h5>
+        </div>
+        <div class="card-body">
+          <% if (user && user.role === 'customer') { %>
+            <div class="mb-4">
+              <h6>Leave a Review</h6>
+              <form action="/reviews/create" method="POST">
+                <input type="hidden" name="vehicle_id" value="<%= vehicle.vehicle_id %>">
+                <div class="mb-3">
+                  <label class="form-label">Rating</label>
+                  <select class="form-select" name="rating" required>
+                    <option value="">Select rating</option>
+                    <option value="5">⭐⭐⭐⭐⭐ - Excellent</option>
+                    <option value="4">⭐⭐⭐⭐ - Very Good</option>
+                    <option value="3">⭐⭐⭐ - Good</option>
+                    <option value="2">⭐⭐ - Fair</option>
+                    <option value="1">⭐ - Poor</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Comment (optional)</label>
+                  <textarea class="form-control" name="comment" rows="3" placeholder="Share your experience with this vehicle..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit Review</button>
+              </form>
+            </div>
+            <hr>
+          <% } %>
+
+          <div id="reviews-container">
+            <h6>Reviews (<span id="review-count">0</span>)</h6>
+            <div id="reviews-list">
+              <div class="text-center py-3">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Load reviews for this vehicle
+document.addEventListener('DOMContentLoaded', function() {
+  loadReviews();
+});
+
+async function loadReviews() {
+  try {
+    const response = await fetch(`/reviews/vehicle/<%= vehicle.vehicle_id %>`);
+    const reviews = await response.json();
+    
+    const reviewsList = document.getElementById('reviews-list');
+    const reviewCount = document.getElementById('review-count');
+    
+    reviewCount.textContent = reviews.length;
+    
+    if (reviews.length === 0) {
+      reviewsList.innerHTML = '<p class="text-muted text-center">No reviews yet. Be the first to review!</p>';
+      return;
+    }
+    
+    let html = '';
+    reviews.forEach(review => {
+      const stars = '⭐'.repeat(review.rating);
+      html += `
+        <div class="card mb-3">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <h6 class="card-subtitle mb-2 text-muted">${review.user.first_name} ${review.user.last_name}</h6>
+              <small class="text-muted">${new Date(review.created_at).toLocaleDateString()}</small>
+            </div>
+            <div class="mb-2">${stars}</div>
+            ${review.comment ? `<p class="card-text">${review.comment}</p>` : ''}
+          </div>
+        </div>
+      `;
+    });
+    
+    reviewsList.innerHTML = html;
+  } catch (error) {
+    console.error('Error loading reviews:', error);
+    document.getElementById('reviews-list').innerHTML = '<p class="text-danger text-center">Error loading reviews</p>';
+  }
+}
+</script>
+
+<%- include('../partials/footer') %>

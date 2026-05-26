@@ -1,0 +1,418 @@
+<%- include('partials/header', { user }) %>
+<div class="container-fluid mt-4">
+  <h2>Admin Overview Dashboard</h2>
+  <p class="text-muted">Company-wide monitoring and analytics</p>
+  
+  <!-- Time Period Selector -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary active" onclick="changePeriod('daily')">Daily</button>
+            <button type="button" class="btn btn-outline-primary" onclick="changePeriod('weekly')">Weekly</button>
+            <button type="button" class="btn btn-outline-primary" onclick="changePeriod('monthly')">Monthly</button>
+            <button type="button" class="btn btn-outline-primary" onclick="changePeriod('annual')">Annual</button>
+          </div>
+          <span class="ms-3 text-muted" id="period-display">Showing: Today's Data</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Performance Indicators -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card text-white bg-primary mb-3">
+        <div class="card-body">
+          <h6 class="card-title">Total Revenue</h6>
+          <h3 id="total-revenue">KES <%= (total_revenue || 0).toLocaleString() %></h3>
+          <small class="opacity-75" id="revenue-change">+0% from yesterday</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-white bg-success mb-3">
+        <div class="card-body">
+          <h6 class="card-title">Total Bookings</h6>
+          <h3 id="total-bookings"><%= total_bookings || 0 %></h3>
+          <small class="opacity-75" id="bookings-change">+0% from yesterday</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-white bg-info mb-3">
+        <div class="card-body">
+          <h6 class="card-title">Active Rentals</h6>
+          <h3 id="active-rentals"><%= active_rentals || 0 %></h3>
+          <small class="opacity-75">Currently on rent</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-white bg-warning mb-3">
+        <div class="card-body">
+          <h6 class="card-title">Fleet Utilization</h6>
+          <h3 id="fleet-utilization"><%= utilization || 0 %>%</h3>
+          <small class="opacity-75">Overall efficiency</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secondary Metrics -->
+  <div class="row mb-4">
+    <div class="col-md-2">
+      <div class="card border-primary">
+        <div class="card-body text-center">
+          <h6 class="card-title">New Customers</h6>
+          <h4 class="text-primary"><%= new_customers || 0 %></h4>
+          <small class="text-muted">This period</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card border-success">
+        <div class="card-body text-center">
+          <h6 class="card-title">Completed Rentals</h6>
+          <h4 class="text-success"><%= completed_rentals || 0 %></h4>
+          <small class="text-muted">This period</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card border-info">
+        <div class="card-body text-center">
+          <h6 class="card-title">Avg Rental Duration</h6>
+          <h4 class="text-info"><%= avg_duration || 0 %> days</h4>
+          <small class="text-muted">Per booking</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card border-warning">
+        <div class="card-body text-center">
+          <h6 class="card-title">Revenue/Booking</h6>
+          <h4 class="text-warning">KES <%= (avg_revenue_per_booking || 0).toLocaleString() %></h4>
+          <small class="text-muted">Average</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card border-danger">
+        <div class="card-body text-center">
+          <h6 class="card-title">Maintenance Costs</h6>
+          <h4 class="text-danger">KES <%= (maintenance_costs || 0).toLocaleString() %></h4>
+          <small class="text-muted">This period</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card border-secondary">
+        <div class="card-body text-center">
+          <h6 class="card-title">Net Profit</h6>
+          <h4 class="text-secondary">KES <%= (net_profit || 0).toLocaleString() %></h4>
+          <small class="text-muted">Revenue - Costs</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row mb-4">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Revenue Trends</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="revenueTrendChart" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Booking Types</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="bookingTypeChart" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- More Charts -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Fleet Status Distribution</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="fleetStatusChart" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Top Performing Vehicles</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="topVehiclesChart" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Department Performance -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Department Performance Overview</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <div class="card border-primary mb-2">
+                <div class="card-body">
+                  <h6 class="card-title">Fleet Operations</h6>
+                  <p><strong>Supervisor:</strong> <%= fleet_supervisor_name || 'Not Assigned' %></p>
+                  <p><strong>Active Vehicles:</strong> <%= fleet_active_vehicles || 0 %></p>
+                  <p><strong>Maintenance Pending:</strong> <%= fleet_maintenance_pending || 0 %></p>
+                  <p><strong>Efficiency:</strong> <%= fleet_efficiency || 0 %>%</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card border-success mb-2">
+                <div class="card-body">
+                  <h6 class="card-title">Reception</h6>
+                  <p><strong>Staff:</strong> <%= receptionist_count || 0 %></p>
+                  <p><strong>Bookings Today:</strong> <%= reception_bookings_today || 0 %></p>
+                  <p><strong>Check-ins:</strong> <%= reception_checkins || 0 %></p>
+                  <p><strong>Check-outs:</strong> <%= reception_checkouts || 0 %></p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card border-info mb-2">
+                <div class="card-body">
+                  <h6 class="card-title">Customer Service</h6>
+                  <p><strong>New Reviews:</strong> <%= new_reviews || 0 %></p>
+                  <p><strong>Pending Approval:</strong> <%= pending_reviews || 0 %></p>
+                  <p><strong>Avg Rating:</strong> <%= avg_rating || 0 %>/5</p>
+                  <p><strong>Response Time:</strong> <%= response_time || 0 %> min</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card border-warning mb-2">
+                <div class="card-body">
+                  <h6 class="card-title">Finance</h6>
+                  <p><strong>Payments Today:</strong> <%= payments_today || 0 %></p>
+                  <p><strong>Revenue Today:</strong> KES <%= (revenue_today || 0).toLocaleString() %></p>
+                  <p><strong>Pending Invoices:</strong> <%= pending_invoices || 0 %></p>
+                  <p><strong>Collection Rate:</strong> <%= collection_rate || 0 %>%</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Activities Feed -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Recent Activities</h5>
+          <button class="btn btn-sm btn-outline-primary" onclick="refreshActivities()">Refresh</button>
+        </div>
+        <div class="card-body" style="max-height: 400px; overflow-y: auto;" id="activities-feed">
+          <% if (recent_activities && recent_activities.length > 0) { %>
+            <% recent_activities.forEach(activity => { %>
+              <div class="alert alert-<%= activity.action === 'create' ? 'success' : activity.action === 'delete' ? 'danger' : activity.action === 'checkout' ? 'primary' : activity.action === 'return' ? 'warning' : 'info' %> alert-sm mb-2">
+                <div class="d-flex justify-content-between">
+                  <strong><%= activity.username %> (<%= activity.role %>)</strong>
+                  <small class="text-muted"><%= new Date(activity.created_at).toLocaleString() %></small>
+                </div>
+                <div><%= activity.description %></div>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <p class="text-muted">No recent activities</p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Alerts & Notifications</h5>
+        </div>
+        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+          <% if (alerts && alerts.length > 0) { %>
+            <% alerts.forEach(alert => { %>
+              <div class="alert alert-<%= alert.type === 'critical' ? 'danger' : alert.type === 'warning' ? 'warning' : 'info' %> alert-sm mb-2">
+                <strong><%= alert.title %></strong>
+                <p class="mb-0"><%= alert.message %></p>
+                <small class="text-muted"><%= new Date(alert.created_at).toLocaleString() %></small>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <p class="text-muted">No alerts at this time</p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions (Read-only for admin) -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Quick View - Department Workloads</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <h6>Fleet Supervisor Actions</h6>
+              <ul>
+                <li><%= fleet_pending_tasks || 0 %> pending vehicle additions</li>
+                <li><%= fleet_maintenance_due || 0 %> maintenance tasks due</li>
+                <li><%= fleet_inspections_pending || 0 %> inspections pending</li>
+              </ul>
+              <a href="/vehicles" class="btn btn-sm btn-outline-primary">View Fleet Details</a>
+            </div>
+            <div class="col-md-4">
+              <h6>Receptionist Actions</h6>
+              <ul>
+                <li><%= reception_pending_bookings || 0 %> bookings to confirm</li>
+                <li><%= reception_pending_returns || 0 %> vehicle returns pending</li>
+                <li><%= reception_customer_inquiries || 0 %> customer inquiries</li>
+              </ul>
+              <a href="/bookings" class="btn btn-sm btn-outline-primary">View Booking Details</a>
+            </div>
+            <div class="col-md-4">
+              <h6>Mechanic Actions</h6>
+              <ul>
+                <li><%= mechanic_assigned_tasks || 0 %> maintenance tasks assigned</li>
+                <li><%= mechanic_in_progress || 0 %> tasks in progress</li>
+                <li><%= mechanic_completed_today || 0 %> completed today</li>
+              </ul>
+              <a href="/maintenance" class="btn btn-sm btn-outline-primary">View Maintenance Details</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Revenue Trend Chart
+const revenueTrendCtx = document.getElementById('revenueTrendChart').getContext('2d');
+new Chart(revenueTrendCtx, {
+  type: 'line',
+  data: {
+    labels: JSON.parse('<%- JSON.stringify(revenue_trend_labels || []) %>'),
+    datasets: [{
+      label: 'Revenue',
+      data: JSON.parse('<%- JSON.stringify(revenue_trend_data || []) %>'),
+      borderColor: '#667eea',
+      backgroundColor: 'rgba(102, 126, 234, 0.1)',
+      fill: true,
+      tension: 0.4
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false }
+    }
+  }
+});
+
+// Booking Type Chart
+const bookingTypeCtx = document.getElementById('bookingTypeChart').getContext('2d');
+new Chart(bookingTypeCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Daily', 'Weekly', 'Monthly'],
+    datasets: [{
+      data: JSON.parse('<%- JSON.stringify(booking_type_data || [40, 35, 25]) %>'),
+      backgroundColor: ['#667eea', '#764ba2', '#f093fb']
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false
+  }
+});
+
+// Fleet Status Chart
+const fleetStatusCtx = document.getElementById('fleetStatusChart').getContext('2d');
+new Chart(fleetStatusCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Available', 'On Rent', 'Reserved', 'Maintenance'],
+    datasets: [{
+      data: JSON.parse('<%- JSON.stringify(fleet_status_data || [30, 40, 15, 15]) %>'),
+      backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#fd7e14']
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false
+  }
+});
+
+// Top Vehicles Chart
+const topVehiclesCtx = document.getElementById('topVehiclesChart').getContext('2d');
+new Chart(topVehiclesCtx, {
+  type: 'bar',
+  data: {
+    labels: JSON.parse('<%- JSON.stringify(top_vehicle_labels || []) %>'),
+    datasets: [{
+      label: 'Revenue',
+      data: JSON.parse('<%- JSON.stringify(top_vehicle_data || []) %>'),
+      backgroundColor: '#667eea'
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: 'y'
+  }
+});
+
+function changePeriod(period) {
+  document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  
+  const periodDisplay = {
+    'daily': "Showing: Today's Data",
+    'weekly': "Showing: This Week's Data",
+    'monthly': "Showing: This Month's Data",
+    'annual': "Showing: This Year's Data"
+  };
+  
+  document.getElementById('period-display').textContent = periodDisplay[period];
+  
+  // In a real implementation, you would fetch new data for the selected period
+  // For now, this is a UI demonstration
+}
+
+function refreshActivities() {
+  location.reload();
+}
+</script>
+<%- include('partials/footer') %>

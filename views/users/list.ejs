@@ -1,0 +1,18 @@
+<%- include('../partials/header', { user }) %>
+<div class="container-fluid mt-4">
+  <h2>Users</h2>
+  <table class="table table-striped">
+    <thead><tr><th>Username</th><th>Full Name</th><th>Role</th><th>Active</th></tr></thead>
+    <tbody>
+      <% users.forEach(u => { %>
+        <tr>
+          <td><%= u.username %></td>
+          <td><%= u.getFullName() %></td>
+          <td><%= u.role %></td>
+          <td><%= u.is_active ? 'Yes' : 'No' %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>
