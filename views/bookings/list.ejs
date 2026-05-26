@@ -2,17 +2,33 @@
 <div class="container-fluid mt-4">
   <h2>Bookings <a href="/bookings/create" class="btn btn-primary btn-sm">New Booking</a></h2>
   <table class="table table-striped">
-    <thead><tr><th>Ref</th><th>Customer</th><th>Vehicle</th><th>Start</th><th>End</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Ref</th><th>Customer</th><th>Vehicle</th><th>Start</th><th>End</th><th>Days</th><th>Rate/Day</th><th>Total</th><th>Deposit Paid</th><th>Balance Due</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>
       <% if (bookings && bookings.length > 0) { %>
         <% bookings.forEach(b => { %>
+          <%
+            let days = 0;
+            let dailyRate = 0;
+            if (b.start_date && b.end_date) {
+              const start = new Date(b.start_date);
+              const end = new Date(b.end_date);
+              days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            }
+            if (b.vehicle) {
+              dailyRate = parseFloat(b.vehicle.daily_rate) || 0;
+            }
+          %>
           <tr>
             <td><%= b.booking_reference %></td>
             <td><%= b.customer ? b.customer.getFullName() : 'N/A' %></td>
             <td><%= b.vehicle ? b.vehicle.registration : 'N/A' %></td>
             <td><%= b.start_date ? new Date(b.start_date).toISOString().slice(0,10) : 'N/A' %></td>
             <td><%= b.end_date ? new Date(b.end_date).toISOString().slice(0,10) : 'N/A' %></td>
+            <td><%= days %></td>
+            <td>KES <%= dailyRate.toLocaleString() %></td>
             <td>KES <%= (b.total_amount || 0).toLocaleString() %></td>
+            <td>KES <%= (b.deposit_paid || 0).toLocaleString() %></td>
+            <td><span class="<%= parseFloat(b.balance_due || 0) > 0 ? 'text-danger fw-bold' : 'text-success' %>">KES <%= (b.balance_due || 0).toLocaleString() %></span></td>
             <td><span class="badge bg-<%= b.status === 'confirmed' ? 'primary' : b.status === 'checked-out' ? 'info' : b.status === 'pending' ? 'warning' : b.status === 'cancelled' ? 'danger' : b.status === 'completed' ? 'success' : b.status === 'on-rent' ? 'info' : 'secondary' %>"><%= b.status %></span></td>
             <td>
               <% if (b.status === 'confirmed') { %>
@@ -27,11 +43,12 @@
                   <button type="submit" class="btn btn-sm btn-warning">Return</button>
                 </form>
               <% } %>
+              <a href="/invoices/booking/<%= b.booking_id %>" class="btn btn-sm btn-outline-secondary" target="_blank">Invoice</a>
             </td>
           </tr>
         <% }) %>
       <% } else { %>
-        <tr><td colspan="8" class="text-center">No bookings found</td></tr>
+        <tr><td colspan="12" class="text-center">No bookings found</td></tr>
       <% } %>
     </tbody>
   </table>

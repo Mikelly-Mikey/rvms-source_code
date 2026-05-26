@@ -13,20 +13,83 @@
       </div>
       <div class="col-md-6 mb-3">
         <label>Vehicle</label>
-        <select name="vehicle_id" class="form-select" required>
-          <option value="">Select</option>
-          <% vehicles.forEach(v => { %><option value="<%= v.vehicle_id %>"><%= v.make %> <%= v.model %> (<%= v.registration %>) - KES <%= v.daily_rate %>/day</option><% }) %>
+        <select name="vehicle_id" id="vehicle_id" class="form-select" required>
+          <option value="" data-rate="0">Select</option>
+          <% vehicles.forEach(v => { %><option value="<%= v.vehicle_id %>" data-rate="<%= v.daily_rate %>"><%= v.make %> <%= v.model %> (<%= v.registration %>) - KES <%= v.daily_rate %>/day</option><% }) %>
         </select>
       </div>
     </div>
     <div class="row">
-      <div class="col-md-3 mb-3"><label>Start Date</label><input type="date" name="start_date" class="form-control" required></div>
-      <div class="col-md-3 mb-3"><label>End Date</label><input type="date" name="end_date" class="form-control" required></div>
+      <div class="col-md-3 mb-3"><label>Start Date</label><input type="date" name="start_date" id="start_date" class="form-control" required></div>
+      <div class="col-md-3 mb-3"><label>End Date</label><input type="date" name="end_date" id="end_date" class="form-control" required></div>
       <div class="col-md-3 mb-3"><label>Pickup Time</label><input type="time" name="pickup_time" class="form-control" value="10:00" required></div>
       <div class="col-md-3 mb-3"><label>Return Time</label><input type="time" name="return_time" class="form-control" value="10:00" required></div>
     </div>
+
+    <!-- Price Breakdown -->
+    <div class="row" id="price-breakdown" style="display:none;">
+      <div class="col-md-12 mb-3">
+        <div class="card bg-light">
+          <div class="card-body">
+            <h6 class="card-title">Price Breakdown</h6>
+            <div class="row">
+              <div class="col-md-3"><strong>Daily Rate:</strong> KES <span id="display-daily-rate">0</span></div>
+              <div class="col-md-3"><strong>Number of Days:</strong> <span id="display-days">0</span></div>
+              <div class="col-md-3"><strong>Total Amount:</strong> KES <span id="display-total" class="text-primary fw-bold">0</span></div>
+              <div class="col-md-3"><strong>Balance Due:</strong> KES <span id="display-balance" class="text-danger fw-bold">0</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label>Deposit Paid (KES)</label>
+        <input type="number" name="deposit_paid" id="deposit_paid" class="form-control" value="0" min="0" step="0.01">
+        <small class="text-muted">Enter the initial deposit amount paid by the customer</small>
+      </div>
+    </div>
+
     <button type="submit" class="btn btn-primary">Create Booking</button>
     <a href="/bookings" class="btn btn-secondary">Cancel</a>
   </form>
 </div>
+
+<script>
+function updatePriceBreakdown() {
+  const vehicleSelect = document.getElementById('vehicle_id');
+  const startDate = document.getElementById('start_date').value;
+  const endDate = document.getElementById('end_date').value;
+  const depositInput = document.getElementById('deposit_paid');
+  const breakdown = document.getElementById('price-breakdown');
+
+  const selectedOption = vehicleSelect.options[vehicleSelect.selectedIndex];
+  const dailyRate = parseFloat(selectedOption.dataset.rate) || 0;
+
+  if (dailyRate > 0 && startDate && endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (end >= start) {
+      const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+      const total = days * dailyRate;
+      const deposit = parseFloat(depositInput.value) || 0;
+      const balance = total - deposit;
+
+      document.getElementById('display-daily-rate').textContent = dailyRate.toLocaleString();
+      document.getElementById('display-days').textContent = days;
+      document.getElementById('display-total').textContent = total.toLocaleString();
+      document.getElementById('display-balance').textContent = balance.toLocaleString();
+      breakdown.style.display = 'block';
+      return;
+    }
+  }
+  breakdown.style.display = 'none';
+}
+
+document.getElementById('vehicle_id').addEventListener('change', updatePriceBreakdown);
+document.getElementById('start_date').addEventListener('change', updatePriceBreakdown);
+document.getElementById('end_date').addEventListener('change', updatePriceBreakdown);
+document.getElementById('deposit_paid').addEventListener('input', updatePriceBreakdown);
+</script>
 <%- include('../partials/footer') %>
