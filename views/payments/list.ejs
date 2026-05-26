@@ -1,8 +1,49 @@
 <%- include('../partials/header', { user }) %>
 <div class="container-fluid mt-4">
   <h2>Payments</h2>
+
+  <!-- Record Payment Form -->
+  <div class="card mb-4">
+    <div class="card-header bg-success text-white">
+      <h5 class="mb-0">Record New Payment</h5>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="/payments/record" class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Booking Reference</label>
+          <input type="number" name="booking_id" class="form-control" placeholder="Booking ID" required>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Amount (KES)</label>
+          <input type="number" name="amount" class="form-control" placeholder="Amount" min="0.01" step="0.01" required>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Method</label>
+          <select name="method" class="form-select" required>
+            <option value="cash">Cash</option>
+            <option value="mpesa">M-Pesa</option>
+            <option value="bank_transfer">Bank Transfer</option>
+            <option value="card">Card</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Reference</label>
+          <input type="text" name="reference" class="form-control" placeholder="e.g. M-Pesa code">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Notes</label>
+          <input type="text" name="notes" class="form-control" placeholder="Optional notes">
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+          <button type="submit" class="btn btn-success w-100">Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Payment History Table -->
   <table class="table table-striped">
-    <thead><tr><th>Booking Ref</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th></tr></thead>
+    <thead><tr><th>Booking Ref</th><th>Amount</th><th>Method</th><th>Reference</th><th>Booking Total</th><th>Total Paid</th><th>Balance Due</th><th>Status</th><th>Date</th></tr></thead>
     <tbody>
       <% if (payments && payments.length > 0) { %>
         <% payments.forEach(p => { %>
@@ -10,12 +51,16 @@
             <td><%= p.booking ? p.booking.booking_reference : 'N/A' %></td>
             <td>KES <%= (p.amount || 0).toLocaleString() %></td>
             <td><%= p.method %></td>
+            <td><%= p.reference || '-' %></td>
+            <td><%= p.booking ? 'KES ' + (p.booking.total_amount || 0).toLocaleString() : 'N/A' %></td>
+            <td><%= p.booking ? 'KES ' + (p.booking.deposit_paid || 0).toLocaleString() : 'N/A' %></td>
+            <td><span class="<%= p.booking && parseFloat(p.booking.balance_due || 0) > 0 ? 'text-danger fw-bold' : 'text-success' %>"><%= p.booking ? 'KES ' + (p.booking.balance_due || 0).toLocaleString() : 'N/A' %></span></td>
             <td><span class="badge bg-<%= p.status === 'completed' ? 'success' : 'warning' %>"><%= p.status %></span></td>
             <td><%= p.payment_date ? new Date(p.payment_date).toISOString().slice(0,10) : 'N/A' %></td>
           </tr>
         <% }) %>
       <% } else { %>
-        <tr><td colspan="5" class="text-center">No payments found</td></tr>
+        <tr><td colspan="9" class="text-center">No payments found</td></tr>
       <% } %>
     </tbody>
   </table>

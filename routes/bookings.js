@@ -64,7 +64,7 @@ router.get('/create', requireAuth, requirePermission('manage_bookings'), async (
 // Handle booking creation
 router.post('/create', requireAuth, requirePermission('manage_bookings'), createBookingValidation, async (req, res) => {
   try {
-    const { customer_id, vehicle_id, start_date, end_date, pickup_time, return_time } = req.body;
+    const { customer_id, vehicle_id, start_date, end_date, pickup_time, return_time, deposit_paid } = req.body;
     
     // Check for overlapping bookings for the selected vehicle
     const conflicting = await Booking.findOne({
@@ -100,6 +100,10 @@ router.post('/create', requireAuth, requirePermission('manage_bookings'), create
     const dailyRate = parseFloat(vehicle.daily_rate);
     const totalAmount = days * dailyRate;
     
+    // Parse deposit amount
+    const depositAmount = parseFloat(deposit_paid) || 0;
+    const balanceDue = totalAmount - depositAmount;
+
     // Create booking
     const booking = await Booking.create({
       customer_id,
@@ -110,10 +114,23 @@ router.post('/create', requireAuth, requirePermission('manage_bookings'), create
       return_time,
       created_by: req.user.id,
       total_amount: totalAmount,
-      deposit_paid: 0,
-      balance_due: totalAmount,
+      deposit_paid: depositAmount,
+      balance_due: balanceDue,
       status: 'confirmed'
     });
+
+    // If deposit was paid, record it as a payment
+    if (depositAmount > 0) {
+      await Payment.create({
+        booking_id: booking.booking_id,
+        amount: depositAmount,
+        method: 'cash',
+        reference: `DEP-${booking.booking_reference}`,
+        status: 'completed',
+        recorded_by: req.user.id,
+        notes: 'Initial deposit at booking creation'
+      });
+    }
     
     // Update vehicle status to reserved
     await vehicle.update({ status: 'reserved' });
