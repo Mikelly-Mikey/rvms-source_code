@@ -1,2 +1,27 @@
-/.env
-/.env.example
+# Dependencies
+node_modules/
+
+# Database
+*.sqlite
+*.sqlite3
+
+# Environment variables
+.env
+.env.example
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+
+# Generated files
+invoices/
