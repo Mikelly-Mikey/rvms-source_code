@@ -20,6 +20,58 @@
     </div>
   </div>
 
+  <!-- Data Export / Downloads -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card border-dark">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Download Data</h5>
+          <small class="opacity-75">Export records as Excel or CSV</small>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="border rounded p-3 h-100">
+                <h6 class="mb-1">Receptionist Data</h6>
+                <p class="text-muted small mb-3">Customers, bookings &amp; payments</p>
+                <a href="/admin/export/reception?format=xlsx" class="btn btn-sm btn-success me-1">
+                  Download Excel
+                </a>
+                <a href="/admin/export/reception?format=csv" class="btn btn-sm btn-outline-secondary">
+                  CSV
+                </a>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="border rounded p-3 h-100">
+                <h6 class="mb-1">Fleet Supervisor Data</h6>
+                <p class="text-muted small mb-3">Vehicles, maintenance &amp; inventory</p>
+                <a href="/admin/export/fleet?format=xlsx" class="btn btn-sm btn-success me-1">
+                  Download Excel
+                </a>
+                <a href="/admin/export/fleet?format=csv" class="btn btn-sm btn-outline-secondary">
+                  CSV
+                </a>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="border rounded p-3 h-100">
+                <h6 class="mb-1">Complete Dashboard Data</h6>
+                <p class="text-muted small mb-3">All system records in one file</p>
+                <a href="/admin/export/all?format=xlsx" class="btn btn-sm btn-primary me-1">
+                  Download Excel
+                </a>
+                <a href="/admin/export/all?format=csv" class="btn btn-sm btn-outline-secondary">
+                  CSV
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Key Performance Indicators -->
   <div class="row mb-4">
     <div class="col-md-3">
