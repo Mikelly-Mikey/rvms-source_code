@@ -85,7 +85,8 @@ const routeFiles = [
   { path: '/reports', file: './routes/reports' },
   { path: '/users', file: './routes/users' },
   { path: '/reviews', file: './routes/reviews' },
-  { path: '/invoices', file: './routes/invoices' }
+  { path: '/invoices', file: './routes/invoices' },
+  { path: '/admin', file: './routes/admin' }
 ];
 
 routeFiles.forEach(route => {
