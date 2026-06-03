@@ -41,6 +41,36 @@
     </div>
   </div>
 
+  <!-- M-Pesa STK Push -->
+  <div class="card mb-4">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Pay via M-Pesa (Safaricom STK Push)</h5>
+      <small class="opacity-75">Prompts the customer's phone for their M-Pesa PIN</small>
+    </div>
+    <div class="card-body">
+      <form id="mpesa-form" class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Booking ID</label>
+          <input type="number" id="mpesa-booking" class="form-control" placeholder="Booking ID" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Phone Number</label>
+          <input type="text" id="mpesa-phone" class="form-control" placeholder="07XXXXXXXX" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Amount (KES)</label>
+          <input type="number" id="mpesa-amount" class="form-control" placeholder="Amount" min="1" step="1" required>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          <button type="submit" id="mpesa-btn" class="btn btn-dark w-100">Send STK Push</button>
+        </div>
+      </form>
+      <div id="mpesa-status" class="mt-3" style="display:none;">
+        <div class="alert mb-0" role="alert"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Payment History Table -->
   <table class="table table-striped">
     <thead><tr><th>Booking Ref</th><th>Amount</th><th>Method</th><th>Reference</th><th>Booking Total</th><th>Total Paid</th><th>Balance Due</th><th>Status</th><th>Date</th></tr></thead>
@@ -65,4 +95,100 @@
     </tbody>
   </table>
 </div>
+
+<script>
+(function () {
+  const form = document.getElementById('mpesa-form');
+  if (!form) return;
+  const btn = document.getElementById('mpesa-btn');
+  const statusBox = document.getElementById('mpesa-status');
+  const alertEl = statusBox.querySelector('.alert');
+  let pollTimer = null;
+
+  function showStatus(type, msg) {
+    statusBox.style.display = 'block';
+    alertEl.className = 'alert alert-' + type + ' mb-0';
+    alertEl.innerHTML = msg;
+  }
+
+  function resetButton() {
+    btn.disabled = false;
+    btn.textContent = 'Send STK Push';
+  }
+
+  function pollStatus(checkoutRequestId, attempt) {
+    attempt = attempt || 0;
+    if (attempt > 20) {
+      showStatus('warning', 'Timed out waiting for confirmation. Check payment history.');
+      resetButton();
+      return;
+    }
+    fetch('/payments/mpesa/status/' + encodeURIComponent(checkoutRequestId))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.success) {
+          showStatus('danger', data.message || 'Could not check status.');
+          resetButton();
+          return;
+        }
+        if (data.status === 'completed') {
+          showStatus('success',
+            'Payment confirmed! M-Pesa receipt: <strong>' + (data.receipt || '') +
+            '</strong>. Reloading...');
+          setTimeout(function () { window.location.reload(); }, 1500);
+          return;
+        }
+        if (data.status === 'failed' || data.status === 'cancelled') {
+          showStatus('danger', 'Payment ' + data.status + ': ' + (data.resultDesc || ''));
+          resetButton();
+          return;
+        }
+        pollTimer = setTimeout(function () {
+          pollStatus(checkoutRequestId, attempt + 1);
+        }, 2000);
+      })
+      .catch(function () {
+        pollTimer = setTimeout(function () {
+          pollStatus(checkoutRequestId, attempt + 1);
+        }, 2000);
+      });
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (pollTimer) clearTimeout(pollTimer);
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    showStatus('info', 'Sending STK push to the customer\'s phone...');
+
+    const payload = {
+      booking_id: document.getElementById('mpesa-booking').value,
+      phone: document.getElementById('mpesa-phone').value,
+      amount: document.getElementById('mpesa-amount').value
+    };
+
+    fetch('/payments/mpesa/stkpush', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.success) {
+          showStatus('danger', data.message || 'Failed to start M-Pesa payment.');
+          resetButton();
+          return;
+        }
+        const note = data.simulated ? ' <span class="badge bg-secondary">simulation</span>' : '';
+        showStatus('info', (data.message || 'STK push sent.') + note +
+          ' Waiting for the customer to enter their PIN...');
+        pollStatus(data.checkoutRequestId, 0);
+      })
+      .catch(function () {
+        showStatus('danger', 'Network error starting M-Pesa payment.');
+        resetButton();
+      });
+  });
+})();
+</script>
 <%- include('../partials/footer') %>
