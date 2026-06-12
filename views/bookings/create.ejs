@@ -15,7 +15,7 @@
         <label>Vehicle</label>
         <select name="vehicle_id" id="vehicle_id" class="form-select" required>
           <option value="" data-rate="0">Select</option>
-          <% vehicles.forEach(v => { %><option value="<%= v.vehicle_id %>" data-rate="<%= v.daily_rate %>"><%= v.make %> <%= v.model %> (<%= v.registration %>) - KES <%= v.daily_rate %>/day</option><% }) %>
+          <% vehicles.forEach(v => { %><option value="<%= v.vehicle_id %>" data-rate="<%= v.daily_rate %>" <%= selectedVehicleId == v.vehicle_id ? 'selected' : '' %>><%= v.make %> <%= v.model %> (<%= v.registration %>) - KES <%= v.daily_rate %>/day</option><% }) %>
         </select>
       </div>
     </div>

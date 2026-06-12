@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth, requirePermission } = require('../middleware/auth');
 const { Customer } = require('../models');
-const { body } = require('express-validator');
+const { body, validationResult } = require('express-validator');
 
 // Validation rules
 const createCustomerValidation = [
@@ -12,8 +12,8 @@ const createCustomerValidation = [
   body('email').optional().isEmail().withMessage('Valid email is required'),
   body('id_type').isIn(['national_id', 'passport', 'alien_card']).withMessage('Valid ID type is required'),
   body('id_number').trim().notEmpty().withMessage('ID number is required'),
-  body('license_number').optional().trim(),
-  body('license_expiry').optional().isISO8601().withMessage('Valid license expiry date is required'),
+  body('license_number').trim().notEmpty().withMessage('License number is required'),
+  body('license_expiry').isISO8601().withMessage('Valid license expiry date is required'),
 ];
 
 router.get('/', requireAuth, requirePermission('manage_bookings'), async (req, res) => {
@@ -21,11 +21,19 @@ router.get('/', requireAuth, requirePermission('manage_bookings'), async (req, r
   res.render('customers/list', { customers, user: req.user });
 });
 
-router.get('/create', requireAuth, (req, res) => {
+router.get('/create', requireAuth, requirePermission('manage_customers'), (req, res) => {
   res.render('customers/create', { user: req.user, error: null });
 });
 
-router.post('/create', requireAuth, createCustomerValidation, async (req, res) => {
+router.post('/create', requireAuth, requirePermission('manage_customers'), createCustomerValidation, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.render('customers/create', {
+      user: req.user,
+      error: errors.array()[0].msg,
+    });
+  }
+
   try {
     console.log('Creating customer with data:', req.body);
     const { first_name, last_name, phone, email, id_type, id_number, license_number, license_expiry } = req.body;
@@ -50,7 +58,7 @@ router.post('/create', requireAuth, createCustomerValidation, async (req, res) =
   }
 });
 
-router.post('/:id/blacklist', requireAuth, async (req, res) => {
+router.post('/:id/blacklist', requireAuth, requirePermission('manage_customers'), async (req, res) => {
   try {
     const customer = await Customer.findByPk(req.params.id);
     if (customer) {
@@ -63,7 +71,7 @@ router.post('/:id/blacklist', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/:id/unblacklist', requireAuth, async (req, res) => {
+router.post('/:id/unblacklist', requireAuth, requirePermission('manage_customers'), async (req, res) => {
   try {
     const customer = await Customer.findByPk(req.params.id);
     if (customer) {
@@ -76,7 +84,7 @@ router.post('/:id/unblacklist', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/:id/delete', requireAuth, async (req, res) => {
+router.post('/:id/delete', requireAuth, requirePermission('manage_customers'), async (req, res) => {
   try {
     const customer = await Customer.findByPk(req.params.id);
     if (customer) {

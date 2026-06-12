@@ -4,8 +4,9 @@ const { requireAuth, requirePermission } = require('../middleware/auth');
 const { Booking, Customer, Vehicle, Payment, User } = require('../models');
 const { Op } = require('sequelize');
 const { logActivity } = require('../utils/activityLogger');
-const { body } = require('express-validator');
-const { sendBookingConfirmation } = require('../utils/emailService');
+const { body, validationResult } = require('express-validator');
+const { sendBookingConfirmation, sendInvoiceEmail } = require('../utils/emailService');
+const { generateInvoiceData } = require('../utils/invoiceGenerator');
 
 // Validation rules
 const createBookingValidation = [
@@ -19,13 +20,13 @@ const createBookingValidation = [
 
 const checkoutValidation = [
   body('check_out_mileage').isFloat({ min: 0 }).withMessage('Valid mileage is required'),
-  body('check_out_fuel').optional().isIn(['full', '3/4', '1/2', '1/4', 'empty']).withMessage('Valid fuel level is required'),
+  body('check_out_fuel').optional().isInt({ min: 0, max: 100 }).withMessage('Fuel level must be 0-100%'),
   body('check_out_notes').optional().trim(),
 ];
 
 const returnValidation = [
   body('check_in_mileage').isFloat({ min: 0 }).withMessage('Valid mileage is required'),
-  body('check_in_fuel').optional().isIn(['full', '3/4', '1/2', '1/4', 'empty']).withMessage('Valid fuel level is required'),
+  body('check_in_fuel').optional().isInt({ min: 0, max: 100 }).withMessage('Fuel level must be 0-100%'),
   body('check_in_notes').optional().trim(),
   body('damage_charges').optional().isFloat({ min: 0 }).withMessage('Valid damage charges is required'),
   body('fuel_charges').optional().isFloat({ min: 0 }).withMessage('Valid fuel charges is required'),
@@ -54,7 +55,8 @@ router.get('/create', requireAuth, requirePermission('manage_bookings'), async (
   try {
     const customers = await Customer.findAll({ order: [['first_name', 'ASC']] });
     const vehicles = await Vehicle.findAll({ where: { status: 'available' } });
-    res.render('bookings/create', { customers, vehicles, user: req.user, error: null });
+    const selectedVehicleId = req.query.vehicle_id || null;
+    res.render('bookings/create', { customers, vehicles, user: req.user, error: null, selectedVehicleId });
   } catch (error) {
     console.error('Error loading booking form:', error);
     res.status(500).render('error', { message: 'Error loading booking form' });
@@ -63,6 +65,18 @@ router.get('/create', requireAuth, requirePermission('manage_bookings'), async (
 
 // Handle booking creation
 router.post('/create', requireAuth, requirePermission('manage_bookings'), createBookingValidation, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const customers = await Customer.findAll({ order: [['first_name', 'ASC']] });
+    const vehicles = await Vehicle.findAll({ where: { status: 'available' } });
+    return res.render('bookings/create', {
+      customers,
+      vehicles,
+      user: req.user,
+      error: errors.array()[0].msg,
+    });
+  }
+
   try {
     const { customer_id, vehicle_id, start_date, end_date, pickup_time, return_time, deposit_paid } = req.body;
     
@@ -168,9 +182,14 @@ router.post('/create', requireAuth, requirePermission('manage_bookings'), create
 
 // Check out vehicle (change status from confirmed to checked-out)
 router.post('/:id/checkout', requireAuth, requirePermission('manage_bookings'), checkoutValidation, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).render('error', { message: errors.array()[0].msg });
+  }
+
   try {
     const booking = await Booking.findByPk(req.params.id, {
-      include: ['vehicle']
+      include: ['vehicle', 'customer']
     });
 
     if (!booking) {
@@ -182,12 +201,18 @@ router.post('/:id/checkout', requireAuth, requirePermission('manage_bookings'), 
     }
 
     const { check_out_mileage, check_out_fuel, check_out_notes } = req.body;
+    const mileage = parseInt(check_out_mileage, 10);
+    if (mileage < (booking.vehicle.current_mileage || 0)) {
+      return res.status(400).render('error', {
+        message: `Checkout mileage must be at least ${booking.vehicle.current_mileage || 0} km (current vehicle mileage)`,
+      });
+    }
 
     // Update booking with checkout details
     await booking.update({
       actual_pickup_time: new Date(),
-      check_out_mileage: check_out_mileage || 0,
-      check_out_fuel: check_out_fuel || 'full',
+      check_out_mileage: parseInt(check_out_mileage, 10) || 0,
+      check_out_fuel: check_out_fuel ? parseInt(check_out_fuel, 10) : null,
       check_out_notes: check_out_notes,
       status: 'checked-out'
     });
@@ -195,8 +220,8 @@ router.post('/:id/checkout', requireAuth, requirePermission('manage_bookings'), 
     // Update vehicle status to on-rent
     await booking.vehicle.update({
       status: 'on-rent',
-      current_mileage: check_out_mileage || booking.vehicle.current_mileage,
-      current_fuel: check_out_fuel || booking.vehicle.current_fuel
+      current_mileage: parseInt(check_out_mileage, 10) || booking.vehicle.current_mileage,
+      current_fuel: check_out_fuel ? parseInt(check_out_fuel, 10) : booking.vehicle.current_fuel
     });
 
     // Log activity
@@ -211,9 +236,14 @@ router.post('/:id/checkout', requireAuth, requirePermission('manage_bookings'), 
 
 // Return vehicle (complete booking)
 router.post('/:id/return', requireAuth, requirePermission('manage_bookings'), returnValidation, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).render('error', { message: errors.array()[0].msg });
+  }
+
   try {
     const booking = await Booking.findByPk(req.params.id, {
-      include: ['vehicle']
+      include: ['vehicle', 'customer']
     });
 
     if (!booking) {
@@ -225,28 +255,58 @@ router.post('/:id/return', requireAuth, requirePermission('manage_bookings'), re
     }
 
     const { check_in_mileage, check_in_fuel, check_in_notes, damage_charges, fuel_charges, late_fee } = req.body;
+    const returnMileage = parseInt(check_in_mileage, 10);
+    const checkoutMileage = booking.check_out_mileage || booking.vehicle.current_mileage || 0;
+    if (returnMileage < checkoutMileage) {
+      return res.status(400).render('error', {
+        message: `Return mileage must be at least ${checkoutMileage} km (checkout mileage)`,
+      });
+    }
+
+    const additionalCharges =
+      (parseFloat(damage_charges) || 0) +
+      (parseFloat(fuel_charges) || 0) +
+      (parseFloat(late_fee) || 0);
+    const newTotal = parseFloat(booking.total_amount || 0) + additionalCharges;
+    const newBalance = newTotal - parseFloat(booking.deposit_paid || 0);
 
     // Update booking with return details
     await booking.update({
       actual_return_time: new Date(),
-      check_in_mileage: check_in_mileage || booking.check_in_mileage,
-      check_in_fuel: check_in_fuel || booking.check_in_fuel,
+      check_in_mileage: parseInt(check_in_mileage, 10),
+      check_in_fuel: check_in_fuel ? parseInt(check_in_fuel, 10) : null,
       check_in_notes: check_in_notes,
-      damage_charges: damage_charges || 0,
-      fuel_charges: fuel_charges || 0,
-      late_fee: late_fee || 0,
+      damage_charges: parseFloat(damage_charges) || 0,
+      fuel_charges: parseFloat(fuel_charges) || 0,
+      late_fee: parseFloat(late_fee) || 0,
+      total_amount: newTotal,
+      balance_due: newBalance,
       status: 'completed'
     });
 
     // Update vehicle status to available
     await booking.vehicle.update({
       status: 'available',
-      current_mileage: check_in_mileage || booking.vehicle.current_mileage,
-      current_fuel: check_in_fuel || booking.vehicle.current_fuel
+      current_mileage: parseInt(check_in_mileage, 10) || booking.vehicle.current_mileage,
+      current_fuel: check_in_fuel ? parseInt(check_in_fuel, 10) : booking.vehicle.current_fuel
     });
 
     // Log activity
     await logActivity(req.user, 'return', 'booking', booking.booking_id, `Returned vehicle for booking ${booking.booking_reference}`);
+
+    // Send invoice to customer via email
+    try {
+      const invoiceData = await generateInvoiceData(booking.booking_id);
+      const customerEmail = booking.customer?.email;
+      const customerName = booking.customer
+        ? `${booking.customer.first_name} ${booking.customer.last_name}`
+        : 'Customer';
+      if (customerEmail) {
+        await sendInvoiceEmail(customerEmail, customerName, invoiceData);
+      }
+    } catch (emailError) {
+      console.error('Error sending invoice email:', emailError);
+    }
 
     res.redirect('/bookings');
   } catch (error) {
@@ -259,7 +319,7 @@ router.post('/:id/return', requireAuth, requirePermission('manage_bookings'), re
 router.post('/:id/delete', requireAuth, requirePermission('manage_bookings'), async (req, res) => {
   try {
     const booking = await Booking.findByPk(req.params.id, {
-      include: ['vehicle']
+      include: ['vehicle', 'customer']
     });
 
     if (!booking) {

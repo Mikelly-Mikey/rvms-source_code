@@ -25,6 +25,7 @@
               <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
               <li class="nav-item"><a class="nav-link" href="/vehicles">Vehicles</a></li>
               <li class="nav-item"><a class="nav-link" href="/maintenance">Maintenance</a></li>
+              <li class="nav-item"><a class="nav-link" href="/inventory">Inventory</a></li>
             <% } else if (user.role === 'receptionist') { %>
               <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
               <li class="nav-item"><a class="nav-link" href="/bookings">Bookings</a></li>
@@ -33,10 +34,17 @@
               <li class="nav-item"><a class="nav-link" href="/payments">Payments</a></li>
             <% } else if (user.role === 'admin') { %>
               <li class="nav-item"><a class="nav-link" href="/">Overview Dashboard</a></li>
+              <li class="nav-item"><a class="nav-link" href="/bookings">Bookings</a></li>
+              <li class="nav-item"><a class="nav-link" href="/payments">Payments</a></li>
+              <li class="nav-item"><a class="nav-link" href="/vehicles">Vehicles</a></li>
+              <li class="nav-item"><a class="nav-link" href="/customers">Customers</a></li>
+              <li class="nav-item"><a class="nav-link" href="/inventory">Inventory</a></li>
               <li class="nav-item"><a class="nav-link" href="/reports">Reports & Analytics</a></li>
               <li class="nav-item"><a class="nav-link" href="/reviews/pending">Pending Reviews</a></li>
               <li class="nav-item"><a class="nav-link" href="/users">Staff Management</a></li>
-              <li class="nav-item"><a class="nav-link" href="/users">Settings</a></li>
+            <% } else if (user.role === 'mechanic') { %>
+              <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
+              <li class="nav-item"><a class="nav-link" href="/maintenance">Maintenance</a></li>
             <% } %>
             <li class="nav-item"><a class="nav-link" href="/logout">Logout (<%= user.username %>)</a></li>
           <% } else { %>

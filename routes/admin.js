@@ -2,6 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { buildWorkbook, buildCsv, EXPORT_GROUPS } = require('../utils/dataExporter');
+const {
+  generateCustomersPdf,
+  generateFleetPdf,
+  generateStaffPdf,
+  generateRevenuePdf,
+} = require('../utils/pdfExporter');
 const { logActivity } = require('../utils/activityLogger');
 
 const XLSX_CONTENT_TYPE =
@@ -35,7 +41,7 @@ router.get(
           'Content-Disposition',
           `attachment; filename="${filename}-${timestamp()}.csv"`
         );
-        logActivity(req.user, 'export', 'data', null, `Exported ${scope} data (CSV)`);
+        await logActivity(req.user, 'export', 'data', null, `Exported ${scope} data (CSV)`);
         return res.send(csv);
       }
 
@@ -45,7 +51,7 @@ router.get(
         'Content-Disposition',
         `attachment; filename="${filename}-${timestamp()}.xlsx"`
       );
-      logActivity(req.user, 'export', 'data', null, `Exported ${scope} data (Excel)`);
+      await logActivity(req.user, 'export', 'data', null, `Exported ${scope} data (Excel)`);
       await workbook.xlsx.write(res);
       return res.end();
     } catch (error) {
@@ -53,6 +59,40 @@ router.get(
       return res.status(500).render('error', {
         message: 'Failed to generate export. Please try again.'
       });
+    }
+  }
+);
+
+// PDF exports for admin dashboard
+// GET /admin/pdf/:type?period=daily|weekly|monthly|annual
+router.get(
+  '/pdf/:type',
+  requireAuth,
+  requireRole(['admin']),
+  async (req, res) => {
+    const { type } = req.params;
+    const period = req.query.period || 'daily';
+
+    try {
+      switch (type) {
+        case 'customers':
+          await logActivity(req.user, 'export', 'pdf', null, 'Exported customers PDF');
+          return await generateCustomersPdf(res);
+        case 'fleet':
+          await logActivity(req.user, 'export', 'pdf', null, 'Exported fleet PDF');
+          return await generateFleetPdf(res);
+        case 'staff':
+          await logActivity(req.user, 'export', 'pdf', null, 'Exported staff PDF');
+          return await generateStaffPdf(res);
+        case 'revenue':
+          await logActivity(req.user, 'export', 'pdf', null, `Exported revenue PDF (${period})`);
+          return await generateRevenuePdf(res, period);
+        default:
+          return res.status(404).render('error', { message: `Unknown PDF export type: ${type}` });
+      }
+    } catch (error) {
+      console.error(`Error generating ${type} PDF:`, error);
+      return res.status(500).render('error', { message: 'Failed to generate PDF. Please try again.' });
     }
   }
 );

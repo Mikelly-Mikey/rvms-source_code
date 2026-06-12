@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
-const { Review, Vehicle, User } = require('../models');
+const { Review, Vehicle, User, Booking } = require('../models');
 const { body, validationResult } = require('express-validator');
+const { resolveCustomerForUser } = require('../utils/customerResolver');
 
 // Validation rules
 const createReviewValidation = [
@@ -33,12 +34,14 @@ router.post('/create', requireAuth, createReviewValidation, async (req, res) => 
       return res.redirect(`/vehicles/${vehicle_id}?error=You have already reviewed this vehicle`);
     }
 
-    // Check if user has a completed booking for this vehicle
-    // This is a basic check - you might want to add more sophisticated validation
-    const { Booking } = require('../models');
+    const customer = await resolveCustomerForUser(req.user);
+    if (!customer) {
+      return res.redirect(`/vehicles/${vehicle_id}?error=Your account is not linked to a customer profile yet`);
+    }
+
     const hasBooked = await Booking.findOne({
       where: {
-        user_id: req.user.id,
+        customer_id: customer.customer_id,
         vehicle_id,
         status: 'completed'
       }

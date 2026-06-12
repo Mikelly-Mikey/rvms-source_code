@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+const { printEnvReport } = require('./config/env');
 
 const sequelize = require('./config/database');
 
@@ -125,6 +126,7 @@ sequelize.sync({ force: false })
     const server = app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      printEnvReport();
     });
 
     // Graceful shutdown

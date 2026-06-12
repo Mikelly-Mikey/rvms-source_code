@@ -135,7 +135,7 @@ router.get('/', requireAuth, requirePermission('view_reports'), async (req, res)
     try {
       recentBookings = await Booking.findAll({
         where: {
-          created_at: { [Op.gte]: thirtyDaysAgo }
+          created_date: { [Op.gte]: thirtyDaysAgo }
         },
         attributes: ['customer_id']
       });

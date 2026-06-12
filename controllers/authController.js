@@ -1,5 +1,7 @@
-const { User } = require('../models');
+const { User, Customer } = require('../models');
 const { body, validationResult } = require('express-validator');
+const { logActivity } = require('../utils/activityLogger');
+const { sendVerificationEmail } = require('../utils/emailService');
 
 const loginView = (req, res) => {
   res.render('auth/login', { 
@@ -109,7 +111,7 @@ const register = async (req, res) => {
   }
 
   try {
-    const { username, email, password, first_name, last_name, phone } = req.body;
+    const { username, email, password, first_name, last_name, phone, license_number, license_expiry, id_type, id_number } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({
@@ -125,6 +127,21 @@ const register = async (req, res) => {
       return res.redirect('/register?error=Username or email already exists');
     }
 
+    // Check if customer with same phone/email exists
+    const existingCustomer = await Customer.findOne({
+      where: {
+        [require('sequelize').Op.or]: [
+          { phone },
+          { email }
+        ]
+      }
+    });
+
+    if (existingCustomer) {
+      return res.redirect('/register?error=A customer with this phone or email already exists');
+    }
+
+    // Create User account
     const user = await User.create({
       username,
       email,
@@ -132,10 +149,44 @@ const register = async (req, res) => {
       first_name,
       last_name,
       phone,
-      role: 'customer'
+      license_number,
+      role: 'customer',
+      is_email_verified: false
     });
 
-    return res.redirect('/login?message=Account created successfully! Please log in.');
+    // Create corresponding Customer record
+    const customer = await Customer.create({
+      first_name,
+      last_name,
+      phone,
+      email,
+      id_type: id_type || 'national_id',
+      id_number: id_number || 'PENDING',
+      license_number: license_number || 'PENDING',
+      license_expiry: license_expiry || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now if not provided
+      registered_by: null, // Self-registration
+      notes: 'Self-registered customer account'
+    });
+
+    // Log the registration activity (system activity)
+    await logActivity(
+      user,
+      'register',
+      'customer',
+      customer.customer_id,
+      `New customer registered: ${user.getFullName()} (${email})`
+    );
+
+    // Send verification email
+    try {
+      const verificationToken = await user.generateEmailVerificationToken();
+      await sendVerificationEmail(user, verificationToken);
+    } catch (emailError) {
+      console.error('Error sending verification email:', emailError);
+      // Don't fail registration if email fails
+    }
+
+    return res.redirect('/login?message=' + encodeURIComponent('Account created successfully! Please check your email to verify your account.'));
   } catch (error) {
     console.error('Registration error:', error);
     return res.redirect('/register?error=An error occurred during registration');

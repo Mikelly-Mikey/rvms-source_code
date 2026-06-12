@@ -3,7 +3,7 @@ const router = express.Router();
 const { requireAuth, requirePermission } = require('../middleware/auth');
 const { Vehicle } = require('../models');
 const { logActivity } = require('../utils/activityLogger');
-const { body } = require('express-validator');
+const { body, validationResult } = require('express-validator');
 
 // Validation rules
 const createVehicleValidation = [
@@ -16,7 +16,7 @@ const createVehicleValidation = [
   body('fuel_type').isIn(['petrol', 'diesel', 'electric', 'hybrid']).withMessage('Valid fuel type is required'),
   body('seating_capacity').isInt({ min: 2, max: 20 }).withMessage('Valid seating capacity is required'),
   body('daily_rate').isFloat({ min: 0 }).withMessage('Valid daily rate is required'),
-  body('weekly_rate').isFloat({ min: 0 }).withMessage('Valid weekly rate is required'),
+  body('weekly_rate').optional().isFloat({ min: 0 }).withMessage('Valid weekly rate is required'),
   body('color').optional().trim(),
   body('description').optional().trim(),
   body('image_url').optional().isURL().withMessage('Valid image URL is required'),
@@ -43,8 +43,20 @@ router.get('/create', requireAuth, requirePermission('manage_vehicles'), (req, r
 });
 
 router.post('/create', requireAuth, requirePermission('manage_vehicles'), createVehicleValidation, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).render('error', { message: errors.array()[0].msg });
+  }
+
   try {
-    const vehicle = await Vehicle.create(req.body);
+    const payload = { ...req.body };
+    if ((payload.weekly_rate == null || payload.weekly_rate === "") && payload.daily_rate != null && payload.daily_rate !== "") {
+      const daily = parseFloat(payload.daily_rate);
+      if (!Number.isNaN(daily)) {
+        payload.weekly_rate = daily * 6;
+      }
+    }
+    const vehicle = await Vehicle.create(payload);
     
     // Log activity
     await logActivity(req.user, 'create', 'vehicle', vehicle.vehicle_id, `Added new vehicle ${vehicle.registration} (${vehicle.make} ${vehicle.model})`);

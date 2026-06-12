@@ -17,6 +17,7 @@
             if (b.vehicle) {
               dailyRate = parseFloat(b.vehicle.daily_rate) || 0;
             }
+            const currentMileage = b.vehicle ? (b.vehicle.current_mileage || 0) : 0;
           %>
           <tr>
             <td><%= b.booking_reference %></td>
@@ -32,20 +33,109 @@
             <td><span class="badge bg-<%= b.status === 'confirmed' ? 'primary' : b.status === 'checked-out' ? 'info' : b.status === 'pending' ? 'warning' : b.status === 'cancelled' ? 'danger' : b.status === 'completed' ? 'success' : b.status === 'on-rent' ? 'info' : 'secondary' %>"><%= b.status %></span></td>
             <td>
               <% if (b.status === 'confirmed') { %>
-                <form action="/bookings/<%= b.booking_id %>/checkout" method="POST" style="display:inline;">
-                  <button type="submit" class="btn btn-sm btn-success">Check Out</button>
-                </form>
+                <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#checkoutModal<%= b.booking_id %>">Check Out</button>
                 <form action="/bookings/<%= b.booking_id %>/delete" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to cancel this booking?');">
                   <button type="submit" class="btn btn-sm btn-danger">Cancel</button>
                 </form>
               <% } else if (b.status === 'checked-out') { %>
-                <form action="/bookings/<%= b.booking_id %>/return" method="POST" style="display:inline;">
-                  <button type="submit" class="btn btn-sm btn-warning">Return</button>
-                </form>
+                <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#returnModal<%= b.booking_id %>">Return</button>
               <% } %>
               <a href="/invoices/booking/<%= b.booking_id %>" class="btn btn-sm btn-outline-secondary" target="_blank">Invoice</a>
             </td>
           </tr>
+
+          <% if (b.status === 'confirmed') { %>
+          <div class="modal fade" id="checkoutModal<%= b.booking_id %>" tabindex="-1">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <form action="/bookings/<%= b.booking_id %>/checkout" method="POST">
+                  <div class="modal-header">
+                    <h5 class="modal-title">Check Out - <%= b.booking_reference %></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <p class="text-muted small">Vehicle: <strong><%= b.vehicle ? b.vehicle.registration : 'N/A' %></strong> | Current mileage: <strong><%= currentMileage.toLocaleString() %> km</strong></p>
+                    <div class="mb-3">
+                      <label class="form-label">Checkout Mileage (km) <span class="text-danger">*</span></label>
+                      <input type="number" name="check_out_mileage" class="form-control" min="<%= currentMileage %>" value="<%= currentMileage %>" required>
+                      <div class="form-text">Must be at least the vehicle's current mileage (<%= currentMileage.toLocaleString() %> km).</div>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Fuel Level (%)</label>
+                      <input type="number" name="check_out_fuel" class="form-control" min="0" max="100" value="100">
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Notes</label>
+                      <textarea name="check_out_notes" class="form-control" rows="2"></textarea>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Confirm Check Out</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          <% } %>
+
+          <% if (b.status === 'checked-out') { %>
+          <%
+            const checkoutMileage = b.check_out_mileage || currentMileage;
+          %>
+          <div class="modal fade" id="returnModal<%= b.booking_id %>" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+              <div class="modal-content">
+                <form action="/bookings/<%= b.booking_id %>/return" method="POST">
+                  <div class="modal-header">
+                    <h5 class="modal-title">Return Vehicle - <%= b.booking_reference %></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <p class="text-muted small">
+                      Vehicle: <strong><%= b.vehicle ? b.vehicle.registration : 'N/A' %></strong> |
+                      Checkout mileage: <strong><%= checkoutMileage.toLocaleString() %> km</strong>
+                    </p>
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">Return Mileage (km) <span class="text-danger">*</span></label>
+                        <input type="number" name="check_in_mileage" class="form-control" min="<%= checkoutMileage %>" value="<%= checkoutMileage %>" required>
+                        <div class="form-text">Must be at least checkout mileage (<%= checkoutMileage.toLocaleString() %> km).</div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label">Fuel Level (%)</label>
+                        <input type="number" name="check_in_fuel" class="form-control" min="0" max="100" value="100">
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div class="col-md-4 mb-3">
+                        <label class="form-label">Damage Charges (KES)</label>
+                        <input type="number" name="damage_charges" class="form-control" min="0" step="0.01" value="0">
+                      </div>
+                      <div class="col-md-4 mb-3">
+                        <label class="form-label">Fuel Charges (KES)</label>
+                        <input type="number" name="fuel_charges" class="form-control" min="0" step="0.01" value="0">
+                      </div>
+                      <div class="col-md-4 mb-3">
+                        <label class="form-label">Late Fee (KES)</label>
+                        <input type="number" name="late_fee" class="form-control" min="0" step="0.01" value="0">
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Return Notes</label>
+                      <textarea name="check_in_notes" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="alert alert-info small mb-0">An invoice will be emailed to the customer upon return.</div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Complete Return &amp; Send Invoice</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          <% } %>
         <% }) %>
       <% } else { %>
         <tr><td colspan="12" class="text-center">No bookings found</td></tr>
