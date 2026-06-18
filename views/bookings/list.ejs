@@ -40,7 +40,9 @@
               <% } else if (b.status === 'checked-out') { %>
                 <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#returnModal<%= b.booking_id %>">Return</button>
               <% } %>
+              <% if (b.status === 'completed') { %>
               <a href="/invoices/booking/<%= b.booking_id %>" class="btn btn-sm btn-outline-secondary" target="_blank">Invoice</a>
+              <% } %>
             </td>
           </tr>
 

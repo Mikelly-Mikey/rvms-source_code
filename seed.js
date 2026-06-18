@@ -716,10 +716,10 @@ async function seed() {
     // b3: Grace Wanjiku (c8/shiks100 → but customer_id 8 ≠ User.id 6)
     //     For customer dashboard to work, we need customer_id matching User.id=6
     //     So let's use c6 (customer_id=6) for shiks100's bookings
-    // c6 = Lilian Akinyi → rented Mercedes C200 (v6, 12000/day) for 3 days — COMPLETED, partial balance
-    // 3 days → total = 36,000; paid 30,000; balance = 6,000
+    // c8 = Grace Wanjiku → rented Mercedes C200 (v6, 12000/day) for 3 days — COMPLETED, partial balance
+    // 3 days → total = 36,000; paid 30,000; balance = 6,000. This booking is for shiks100 (customerUser2)
     const b3 = await Booking.create({
-      customer_id: c6.customer_id,
+      customer_id: c8.customer_id,
       vehicle_id: v6.vehicle_id,
       created_by: bookingOfficer.id,
       start_date: subDays(today, 22),
@@ -885,10 +885,10 @@ async function seed() {
       check_out_fuel: 100,
     });
 
-    // b11: Lilian Akinyi (c6/shiks100) rented Honda Fit (v9, 2800/day) for 3 days — CHECKED-OUT (v9 = on-rent)
-    // 3 days → total = 8,400; deposit = 4,000; balance = 4,400
+    // b11: Grace Wanjiku (c8/shiks100) rented Honda Fit (v9, 2800/day) for 3 days — CHECKED-OUT (v9 = on-rent)
+    // 3 days → total = 8,400; deposit = 4,000; balance = 4,400. This booking is for shiks100 (customerUser2)
     const b11 = await Booking.create({
-      customer_id: c6.customer_id,
+      customer_id: c8.customer_id,
       vehicle_id: v9.vehicle_id,
       created_by: bookingOfficer.id,
       start_date: subDays(today, 1),
@@ -1124,8 +1124,8 @@ async function seed() {
       notes: "Balance via Visa card",
     });
 
-    // b8: Sarah Njeri (on-rent) — paid deposit 5,000 of 8,400
-    await Payment.create({
+    // b8: Sarah Njeri (on-rent) — paid deposit 5,000 of 8,400. This payment is for b8.
+    const p8 = await Payment.create({
       booking_id: b8.booking_id,
       amount: 5000,
       method: "mpesa",
@@ -1135,8 +1135,8 @@ async function seed() {
       notes: "Deposit for Mazda Axela rental",
     });
 
-    // b9: Brian Kiprono/mwangi (on-rent) — paid deposit 12,000 of 20,000
-    await Payment.create({
+    // b9: Brian Kiprono/mwangi (on-rent) — paid deposit 12,000 of 20,000. This payment is for b9.
+    const p9 = await Payment.create({
       booking_id: b9.booking_id,
       amount: 12000,
       method: "mpesa",
@@ -1146,8 +1146,8 @@ async function seed() {
       notes: "Deposit for current Rav4 rental",
     });
 
-    // b10: Amina Hassan (on-rent) — paid deposit 15,000 of 30,000
-    await Payment.create({
+    // b10: Amina Hassan (on-rent) — paid deposit 15,000 of 30,000. This payment is for b10.
+    const p10 = await Payment.create({
       booking_id: b10.booking_id,
       amount: 15000,
       method: "bank_transfer",
@@ -1157,8 +1157,8 @@ async function seed() {
       notes: "Deposit for Forester rental",
     });
 
-    // b11: Lilian Akinyi/shiks100 (on-rent) — paid deposit 4,000 of 8,400
-    await Payment.create({
+    // b11: Grace Wanjiku/shiks100 (on-rent) — paid deposit 4,000 of 8,400. This payment is for b11.
+    const p11 = await Payment.create({
       booking_id: b11.booking_id,
       amount: 4000,
       method: "cash",
@@ -1167,8 +1167,8 @@ async function seed() {
       notes: "Cash deposit for Honda Fit",
     });
 
-    // b12: Tom Odhiambo (on-rent) — paid deposit 7,000 of 14,000
-    await Payment.create({
+    // b12: Tom Odhiambo (on-rent) — paid deposit 7,000 of 14,000. This payment is for b12.
+    const p12 = await Payment.create({
       booking_id: b12.booking_id,
       amount: 7000,
       method: "mpesa",
@@ -1178,8 +1178,8 @@ async function seed() {
       notes: "Deposit for Toyota Fielder",
     });
 
-    // b13: Patrick Mutua (future) — paid deposit 3,000 of 6,600
-    await Payment.create({
+    // b13: Patrick Mutua (future) — paid deposit 3,000 of 6,600. This payment is for b13.
+    const p13 = await Payment.create({
       booking_id: b13.booking_id,
       amount: 3000,
       method: "mpesa",
@@ -1189,8 +1189,8 @@ async function seed() {
       notes: "Advance deposit for upcoming rental",
     });
 
-    // b15: Brian Kiprono/mwangi (future) — paid deposit 10,000 of 24,000
-    await Payment.create({
+    // b15: Brian Kiprono/mwangi (future) — paid deposit 10,000 of 24,000. This payment is for b15.
+    const p15 = await Payment.create({
       booking_id: b15.booking_id,
       amount: 10000,
       method: "mpesa",
@@ -1200,7 +1200,7 @@ async function seed() {
       notes: "Advance deposit for D-Max trip",
     });
 
-    console.log("✅ 22 Payments created (matching all deposit_paid values)");
+    console.log("✅ 22 Payments created (matching all deposit_paid values).");
 
     // =====================================================================
     //  6. MAINTENANCE RECORDS  (for fleet supervisor dashboard)
@@ -1511,48 +1511,48 @@ async function seed() {
     //  10. REVIEWS  (customer reviews for vehicles)
     // =====================================================================
     await Review.create({
-      vehicle_id: v1.vehicle_id,
-      user_id: customerUser1.id,
+      vehicle_id: v6.vehicle_id, // Mercedes C200
+      user_id: customerUser2.id, // shiks100
       rating: 4,
+      comment:
+        "Luxury experience! The Mercedes was spotless and drove beautifully.",
+      is_approved: true,
+    });
+    await Review.create({
+      vehicle_id: v1.vehicle_id, // Mazda Axela
+      user_id: customerUser1.id, // mwangi
+      rating: 5,
       comment: "Smooth ride and great fuel economy. AC worked perfectly.",
       is_approved: true,
     });
     await Review.create({
-      vehicle_id: v4.vehicle_id,
-      user_id: customerUser1.id,
+      vehicle_id: v12.vehicle_id, // Toyota Probox
+      user_id: customerUser2.id, // shiks100
+      rating: 4,
+      comment:
+        "Perfect for running errands around town. Reliable and affordable.",
+      is_approved: true,
+    });
+    await Review.create({
+      vehicle_id: v4.vehicle_id, // Toyota Rav4
+      user_id: customerUser1.id, // mwangi
       rating: 5,
       comment:
         "The Rav4 handled the Naivasha trip like a champ. Very comfortable on long drives.",
       is_approved: true,
     });
     await Review.create({
-      vehicle_id: v3.vehicle_id,
-      user_id: customerUser2.id,
-      rating: 4,
+      vehicle_id: v3.vehicle_id, // Nissan Note
+      user_id: customerUser2.id, // shiks100
+      rating: 3,
       comment: "Compact and easy to park in the CBD. Good for city driving.",
       is_approved: true,
     });
     await Review.create({
-      vehicle_id: v6.vehicle_id,
-      user_id: customerUser2.id,
-      rating: 5,
-      comment:
-        "Luxury experience! The Mercedes was spotless and drove beautifully.",
-      is_approved: true,
-    });
-    await Review.create({
-      vehicle_id: v20.vehicle_id,
-      user_id: customerUser1.id,
-      rating: 3,
-      comment: "Decent car but the interior could use some freshening up.",
-      is_approved: true,
-    });
-    await Review.create({
-      vehicle_id: v12.vehicle_id,
-      user_id: customerUser2.id,
+      vehicle_id: v20.vehicle_id, // VW Polo
+      user_id: customerUser1.id, // mwangi
       rating: 4,
-      comment:
-        "Perfect for running errands around town. Reliable and affordable.",
+      comment: "Decent car but the interior could use some freshening up.",
       is_approved: false,
     });
 

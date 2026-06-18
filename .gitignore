@@ -24,3 +24,4 @@ npm-debug.log*
 
 # Generated files
 invoices/
+public/uploads/

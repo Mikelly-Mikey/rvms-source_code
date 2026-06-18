@@ -8,6 +8,9 @@ const { generateInvoiceData, generateInvoiceHTML } = require('../utils/invoiceGe
 router.get('/booking/:bookingId', requireAuth, async (req, res) => {
   try {
     const invoiceData = await generateInvoiceData(req.params.bookingId);
+    if (invoiceData.status === 'cancelled') {
+      return res.status(400).render('error', { message: 'No invoice available for cancelled bookings' });
+    }
     const invoiceHTML = generateInvoiceHTML(invoiceData);
     
     res.send(invoiceHTML);
@@ -21,6 +24,9 @@ router.get('/booking/:bookingId', requireAuth, async (req, res) => {
 router.get('/download/:bookingId', requireAuth, async (req, res) => {
   try {
     const invoiceData = await generateInvoiceData(req.params.bookingId);
+    if (invoiceData.status === 'cancelled') {
+      return res.status(400).render('error', { message: 'No invoice available for cancelled bookings' });
+    }
     const invoiceHTML = generateInvoiceHTML(invoiceData);
     
     res.setHeader('Content-Type', 'text/html');

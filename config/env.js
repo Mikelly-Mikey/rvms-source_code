@@ -1,24 +1,14 @@
-const PLACEHOLDER_PATTERNS = [
-  /^your[_-]?/i,
-  /^change[_-]?me/i,
-  /^xxx+$/i,
-  /^placeholder/i,
-  /^example/i,
-];
-
-function isPlaceholder(value) {
-  if (!value || typeof value !== 'string') return true;
-  const trimmed = value.trim();
-  if (!trimmed) return true;
-  return PLACEHOLDER_PATTERNS.some((pattern) => pattern.test(trimmed));
-}
-
+/**
+ * Prints a summary of the current environment configuration to the console.
+ */
 function printEnvReport() {
-  const checks = [
-    ['EMAIL', isPlaceholder(process.env.EMAIL_USER) ? 'not configured' : 'configured'],
-    ['Database', process.env.DB_TYPE || 'sqlite'],
-  ];
-  checks.forEach(([key, status]) => console.log(`  ${key}: ${status}`));
+  console.log("--- Environment Report ---");
+  console.log(`Node Environment: ${process.env.NODE_ENV}`);
+  console.log(`Database Type:    ${process.env.DB_TYPE || "sqlite"}`);
+  console.log(`Port:             ${process.env.PORT || 3000}`);
+  console.log(`App URL:          ${process.env.APP_URL}`);
+  console.log(`M-Pesa Mode:      ${process.env.MPESA_MODE || "simulation"}`);
+  console.log("--------------------------");
 }
 
-module.exports = { isPlaceholder, printEnvReport };
+module.exports = { printEnvReport };

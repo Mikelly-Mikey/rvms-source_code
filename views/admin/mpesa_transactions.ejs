@@ -1,0 +1,36 @@
+<%- include('../partials/header', { user }) %>
+<div class="container-fluid mt-4">
+  <h2>M-Pesa Transaction Log</h2>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Checkout ID</th>
+        <th>Booking</th>
+        <th>Customer</th>
+        <th>Amount</th>
+        <th>Phone</th>
+        <th>Status</th>
+        <th>Receipt</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (transactions && transactions.length > 0) { %>
+        <% transactions.forEach(tx => { %>
+          <tr>
+            <td><small><%= tx.checkout_request_id %></small></td>
+            <td><%= tx.booking ? tx.booking.booking_reference : 'N/A' %></td>
+            <td><%= tx.booking && tx.booking.customer ? tx.booking.customer.getFullName() : 'N/A' %></td>
+            <td>KES <%= parseFloat(tx.amount || 0).toLocaleString() %></td>
+            <td><%= tx.phone_number %></td>
+            <td><span class="badge bg-<%= tx.status === 'completed' ? 'success' : tx.status === 'pending' ? 'warning' : 'danger' %>"><%= tx.status %></span></td>
+            <td><%= tx.mpesa_receipt || '—' %></td>
+          </tr>
+        <% }) %>
+      <% } else { %>
+        <tr><td colspan="7" class="text-center">No M-Pesa transactions recorded</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+  <a href="/" class="btn btn-secondary">Back to Dashboard</a>
+</div>
+<%- include('../partials/footer') %>

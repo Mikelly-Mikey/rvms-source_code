@@ -5,7 +5,7 @@ const { Booking, Customer, Vehicle, Payment, User } = require('../models');
 const { Op } = require('sequelize');
 const { logActivity } = require('../utils/activityLogger');
 const { body, validationResult } = require('express-validator');
-const { sendBookingConfirmation, sendInvoiceEmail } = require('../utils/emailService');
+const { sendBookingConfirmation, sendInvoiceEmail, sendBookingCancellation } = require('../utils/emailService');
 const { generateInvoiceData } = require('../utils/invoiceGenerator');
 
 // Validation rules
@@ -315,7 +315,7 @@ router.post('/:id/return', requireAuth, requirePermission('manage_bookings'), re
   }
 });
 
-// Delete booking (cancel)
+// Cancel booking (soft cancel — zero balance, no invoice)
 router.post('/:id/delete', requireAuth, requirePermission('manage_bookings'), async (req, res) => {
   try {
     const booking = await Booking.findByPk(req.params.id, {
@@ -326,24 +326,44 @@ router.post('/:id/delete', requireAuth, requirePermission('manage_bookings'), as
       return res.status(404).render('error', { message: 'Booking not found' });
     }
 
-    // Only allow deletion of confirmed bookings (not checked-out or completed)
     if (booking.status !== 'confirmed') {
-      return res.status(400).render('error', { message: 'Cannot delete booking that has already been checked out or completed' });
+      return res.status(400).render('error', { message: 'Only confirmed bookings can be cancelled' });
     }
 
-    // Update vehicle status back to available
+    await booking.update({
+      status: 'cancelled',
+      total_amount: 0,
+      balance_due: 0,
+      damage_charges: 0,
+      fuel_charges: 0,
+      late_fee: 0,
+    });
+
     await booking.vehicle.update({ status: 'available' });
 
-    // Log activity before deletion
-    await logActivity(req.user, 'delete', 'booking', booking.booking_id, `Cancelled booking ${booking.booking_reference} for vehicle ${booking.vehicle.registration}`);
+    await logActivity(
+      req.user,
+      'cancel',
+      'booking',
+      booking.booking_id,
+      `Cancelled booking ${booking.booking_reference} for vehicle ${booking.vehicle.registration}`
+    );
 
-    // Delete the booking
-    await booking.destroy();
+    if (booking.customer?.email) {
+      try {
+        const user = await User.findOne({ where: { email: booking.customer.email } });
+        if (user) {
+          await sendBookingCancellation(user, booking, booking.vehicle);
+        }
+      } catch (emailErr) {
+        console.error('Cancellation email failed:', emailErr.message);
+      }
+    }
 
     res.redirect('/bookings');
   } catch (error) {
-    console.error('Error deleting booking:', error);
-    res.status(500).render('error', { message: 'Error deleting booking' });
+    console.error('Error cancelling booking:', error);
+    res.status(500).render('error', { message: 'Error cancelling booking' });
   }
 });
 
