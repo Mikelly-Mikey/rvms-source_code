@@ -129,21 +129,25 @@ const User = sequelize.define(
 );
 
 // Instance methods
-User.prototype.getFullName = function () {
+const UserInstancePrototype = User.Instance
+  ? User.Instance.prototype
+  : User.prototype;
+
+UserInstancePrototype.getFullName = function () {
   return `${this.first_name} ${this.last_name}`.trim();
 };
 
-User.prototype.hasRole = function (role) {
+UserInstancePrototype.hasRole = function (role) {
   return this.role === role;
 };
 
-User.prototype.hasPermission = function (permission) {
+UserInstancePrototype.hasPermission = function (permission) {
   if (this.role === "admin") return true;
   const permissions = this.getRolePermissions();
   return permissions.includes(permission);
 };
 
-User.prototype.getRolePermissions = function () {
+UserInstancePrototype.getRolePermissions = function () {
   const rolePermissions = {
     admin: [
       "view_reports",
@@ -174,57 +178,61 @@ User.prototype.getRolePermissions = function () {
   return rolePermissions[this.role] || [];
 };
 
-User.prototype.validatePassword = async function (password) {
+UserInstancePrototype.validatePassword = async function (password) {
   return bcrypt.compare(password, this.password);
 };
 
 // SECURE: Generate and store a hashed email verification token with expiry
 // Returns the plain token (caller should send it to the user via email/SMS)
-User.prototype.generateEmailVerificationToken = async function () {
+UserInstancePrototype.generateEmailVerificationToken = async function () {
   // Generate a secure 32-byte token (64 hex chars)
   const plainToken = crypto.randomBytes(32).toString("hex");
-  
+
   // Hash the token before storing
   const hashedToken = crypto
     .createHash("sha256")
     .update(plainToken)
     .digest("hex");
-  
+
   // Set expiry to 24 hours from now
   const expiryDate = new Date();
   expiryDate.setHours(expiryDate.getHours() + 24);
-  
+
   this.email_verification_token = hashedToken;
   this.email_verification_expires = expiryDate;
   this.email_verification_attempts = 0; // Reset attempts on new token
   await this.save();
-  
+
   // Return the plain token to send to user
   return plainToken;
 };
 
 // SECURE: Verify a supplied token with expiry and attempt limits
-User.prototype.verifyEmailToken = async function (token) {
+UserInstancePrototype.verifyEmailToken = async function (token) {
   if (!token || !this.email_verification_token) return false;
-  
+
   // Check if token has expired
-  if (this.email_verification_expires && new Date() > this.email_verification_expires) {
+  if (
+    this.email_verification_expires &&
+    new Date() > this.email_verification_expires
+  ) {
     return false;
   }
-  
+
   // Check attempt limit (max 5 attempts)
   if (this.email_verification_attempts >= 5) {
     return false;
   }
-  
+
   // Hash the provided token
-  const hashedToken = crypto
-    .createHash("sha256")
-    .update(token)
-    .digest("hex");
-  
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
   // Compare hashed tokens using timing-safe comparison
-  if (!this.email_verification_token || typeof this.email_verification_token !== "string") return false;
+  if (
+    !this.email_verification_token ||
+    typeof this.email_verification_token !== "string"
+  )
+    return false;
   if (this.email_verification_token.length !== hashedToken.length) {
     this.email_verification_attempts += 1;
     await this.save();
@@ -233,9 +241,9 @@ User.prototype.verifyEmailToken = async function (token) {
 
   const isValid = crypto.timingSafeEqual(
     Buffer.from(hashedToken),
-    Buffer.from(this.email_verification_token)
+    Buffer.from(this.email_verification_token),
   );
-  
+
   if (isValid) {
     // Token is valid - mark as verified and clear token
     this.is_email_verified = true;
